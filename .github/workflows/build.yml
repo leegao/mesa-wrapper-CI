@@ -7,9 +7,15 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      - name: Patch anon_file.c for memfd_create
+        run: |
+          # SDK 30+ has native memfd_create in NDK
+          sed -i 's/#if defined(HAVE_MEMFD_CREATE) \&\& !defined __TERMUX__/#if defined(HAVE_MEMFD_CREATE)/' src/util/anon_file.c
+          # sed -i '/with_gallium_drisw_kms = false/{n;s/if system_has_kms_drm/if false/;}' meson.build # Disables DRI in WSI
+          sed -i "s/dep_libudev = dependency('libudev', required : false)/dep_libudev = null_dep/g" meson.build
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -18,31 +24,127 @@ jobs:
 
       - name: Install Build Dependencies
         run: |
+          sudo apt update
+          sudo apt install -y \
+            build-essential \
+            libdrm-dev \
+            libudev-dev \
+            libx11-dev \
+            libxcb1-dev \
+            libxcb-dri2-0-dev \
+            libxcb-dri3-dev \
+            libxcb-present-dev \
+            libxcb-sync-dev \
+            libxshmfence-dev \
+            libxxf86vm-dev \
+            libxrandr-dev \
+            libxfixes-dev \
+            libxdamage-dev \
+            libxext-dev \
+            libwayland-dev \
+            wayland-protocols \
+            libwayland-egl-backend-dev \
+            vulkan-tools \
+            vulkan-utility-libraries-dev \
+            libvulkan-dev \
+            mesa-common-dev
           python -m pip install --upgrade pip
-          pip install mako PyYAML meson ninja
+          pip install mako PyYAML meson ninja packaging
 
       - name: Generate Meson Cross File for NDK
         run: |
           cat <<EOF > android-cross.toml
+          [constants]
+          ndk_bin = '$ANDROID_NDK_LATEST_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin'
+          ndk_sysroot = '$ANDROID_NDK_LATEST_HOME/toolchains/llvm/prebuilt/linux-x86_64/sysroot'
+
           [binaries]
-          c = '$ANDROID_NDK_LATEST_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android33-clang'
-          cpp = '$ANDROID_NDK_LATEST_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android33-clang++'
-          ar = '$ANDROID_NDK_LATEST_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar'
-          strip = '$ANDROID_NDK_LATEST_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-strip'
-          pkg-config = 'false'
+          c = [ndk_bin / 'aarch64-linux-android33-clang', '-D__TERMUX__']
+          cpp = [
+            ndk_bin / 'aarch64-linux-android33-clang++',
+            '-fno-exceptions',
+            '-fno-unwind-tables',
+            '-fno-asynchronous-unwind-tables',
+            '--start-no-unused-arguments',
+            '-static-libstdc++',
+            '--end-no-unused-arguments',
+            '-D__TERMUX__']
+          ar = ndk_bin / 'llvm-ar'
+          strip = ndk_bin / 'llvm-strip'
+          pkg-config = '/usr/bin/pkg-config'
 
           [host_machine]
           system = 'android'
           cpu_family = 'aarch64'
-          cpu = 'armv8-a'
+          cpu = 'aarch64'
           endian = 'little'
 
+          [properties]
+          sys_root = ndk_sysroot
+          needs_exe_wrapper = true
+
           [built-in options]
-          c_args = ['-fno-emulated-tls']
-          cpp_args = ['-fno-emulated-tls']
+          c_args = ['-fno-emulated-tls', '-I$GITHUB_WORKSPACE/dummy_inc',
+                    '-DHAVE_STRUCT_TIMESPEC', '-DHAVE_DLFCN_H', '-UHAVE_SECURE_GETENV', '-UHAVE_QSORT_S',
+                    '-include', 'fcntl.h', '-include', 'time.h']
+          cpp_args = ['-fno-emulated-tls', '-I$GITHUB_WORKSPACE/dummy_inc',
+                      '-DHAVE_STRUCT_TIMESPEC', '-DHAVE_DLFCN_H', '-UHAVE_SECURE_GETENV', '-UHAVE_QSORT_S',
+                      '-include', 'fcntl.h', '-include', 'time.h', '-include', 'dlfcn.h']
+          c_link_args = ['-Wl,--allow-shlib-undefined', '-L$GITHUB_WORKSPACE/dummy_lib', '-ldrm']
+          cpp_link_args = ['-Wl,--allow-shlib-undefined', '-L$GITHUB_WORKSPACE/dummy_lib', '-ldrm']
+          EOF
+
+      - name: Setup Shims for libdrm.so
+        run: |
+          mkdir -p dummy_pc dummy_inc/libdrm dummy_lib
+          cp /usr/include/xf86drm*.h dummy_inc/
+          cp /usr/include/libdrm/*.h dummy_inc/
+          cp /usr/include/libdrm/*.h dummy_inc/libdrm/
+
+          cat <<EOF > drm_shim.c
+          #include <stdint.h>
+          int drmIoctl(int fd, unsigned long request, void *arg) { return -1; }
+          int drmSyncobjFDToHandle(int fd, int obj_fd, uint32_t *handle) { return -1; }
+          int drmSyncobjHandleToFD(int fd, uint32_t handle, int *obj_fd, uint32_t flags) { return -1; }
+          int drmSyncobjCreate(int fd, uint32_t flags, uint32_t *handle) { return -1; }
+          int drmSyncobjDestroy(int fd, uint32_t handle) { return -1; }
+          int drmSyncobjWait(int fd, uint32_t *handles, uint32_t count, int64_t timeout_nsec, uint32_t flags, uint32_t *first_signaled) { return -1; }
+          int drmSyncobjTimelineWait(int fd, uint32_t *handles, uint64_t *points, uint32_t count, int64_t timeout_nsec, uint32_t flags, uint32_t *first_signaled) { return -1; }
+          int drmSyncobjTimelineSignal(int fd, uint32_t *handles, uint64_t *points, uint32_t count) { return -1; }
+          int drmSyncobjQuery(int fd, uint32_t *handles, uint64_t *points, uint32_t count) { return -1; }
+          void drmFreeVersion(void *v) {}
+          void *drmGetVersion(int fd) { return 0; }
+          int drmGetMagic(int fd, uint32_t *magic) { return -1; }
+          int drmAuthMagic(int fd, uint32_t magic) { return -1; }
+          int drmSyncobjTransfer(int fd, uint32_t dst_handle, uint64_t dst_point, uint32_t src_handle, uint64_t src_point, uint32_t flags) { return -1; }
+          int drmSyncobjExportSyncFile(int fd, uint32_t handle, int *sync_file_fd) { return -1; }
+          int drmSyncobjImportSyncFile(int fd, uint32_t handle, int sync_file_fd) { return -1; }
+          int drmSyncobjSignal(int fd, uint32_t *handles, uint32_t count) { return -1; }
+          int drmSyncobjReset(int fd, uint32_t *handles, uint32_t count) { return -1; }
+          int drmGetCap(int fd, uint64_t capability, uint64_t *value) { return -1; }
+          int drmGetDevice2(int fd, uint32_t flags, void **device) { if(device) *device = 0; return -1; }
+          int drmGetDevices2(uint32_t flags, void **devices, int max_devices) { return 0; }
+          int drmDevicesEqual(void *a, void *b) { return 0; }
+          void drmFreeDevice(void **device) {}
+          void drmFreeDevices(void **devices, int count) {}
+          EOF
+
+          $ANDROID_NDK_LATEST_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android33-clang \
+            -shared -fPIC drm_shim.c -o dummy_lib/libdrm.so
+
+          $ANDROID_NDK_LATEST_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar cr dummy_lib/librt.a
+
+          cat <<EOF > dummy_pc/libdrm.pc
+          Name: libdrm
+          Description: Stub libdrm for Android NDK build allocation
+          Version: 2.4.121
+          Cflags:
+          Libs: -ldrm
           EOF
 
       - name: Configure Meson
+        # env:
+          # PKG_CONFIG_LIBDIR: ${{ github.workspace }}/dummy_pc
         run: |
           meson setup _build \
             --cross-file android-cross.toml \
@@ -61,8 +163,17 @@ jobs:
             -Dllvm=disabled \
             -Dvalgrind=disabled \
             -Dgallium-drivers= \
+            -Dshared-glapi=disabled \
+            -Dzstd=disabled \
             -Dvulkan-drivers=wrapper
 
       - name: Compile Project
         run: |
           meson compile -C _build
+
+      - name: Upload Vulkan Wrapper Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: libvulkan_wrapper-android-aarch64
+          path: _build/src/vulkan/wrapper/libvulkan_wrapper.so
+          if-no-files-found: error
