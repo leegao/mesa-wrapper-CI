@@ -1,0 +1,66 @@
+name: Android NDK Build (Wrapper Variant)
+
+on: [push]
+
+jobs:
+  build-android-wrapper:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.x'
+
+    - name: Install Build Dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install mako PyYAML meson ninja
+
+    - name: Generate Meson Cross File for NDK
+      run: |
+        # GitHub's ubuntu-latest images include the Android NDK out of the box
+        # Targeting API level 33 matching your explicit platform-sdk-version configuration
+        cat <<EOF > android-cross.toml
+        [binaries]
+        c = '$ANDROID_NDK_LATEST_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android33-clang'
+        cpp = '$ANDROID_NDK_LATEST_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android33-clang++'
+        ar = '$ANDROID_NDK_LATEST_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar'
+        strip = '$ANDROID_NDK_LATEST_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-strip'
+        pkg-config = 'false'
+
+        [host_machine]
+        system = 'android'
+        cpu_family = 'aarch64'
+        cpu = 'armv8-a'
+        endian = 'little'
+
+        [properties]
+        c_args = ['-fno-emulated-tls']
+        cpp_args = ['-fno-emulated-tls']
+        EOF
+
+    - name: Configure Meson
+      run: |
+        meson setup _build \
+          --cross-file android-cross.toml \
+          -Dbuildtype=debugoptimized \
+          -Dplatforms=android \
+          -Dandroid-stub=true \
+          -Dandroid-libbacktrace=disabled \
+          -Dplatform-sdk-version=33 \
+          -Dglx=disabled \
+          -Dgbm=disabled \
+          -Degl=enabled \
+          -Dglvnd=disabled \
+          -Dllvm=disabled \
+          -Dvalgrind=disabled \
+          -Dgallium-drivers= \
+          -Dvulkan-drivers=wrapper
+
+    - name: Compile Project
+      run: |
+        meson compile -C _build
