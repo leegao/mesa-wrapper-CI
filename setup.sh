@@ -1,11 +1,9 @@
-export ANDROID_NDK_LATEST_HOME=~/Android/Sdk/ndk/27.0.12077973
-export GITHUB_WORKSPACE=.
+export ANDROID_NDK_HOME="$HOME/Android/Sdk/ndk/27.0.12077973"
+export MESON_WORKING_DIR="$PWD"
 
-# $ANDROID_NDK_LATEST_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android30-clang \
-#   -shared -fPIC drm_shim.c -o dummy_lib/libdrm.so
-$ANDROID_NDK_LATEST_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar cr shims/librt.a
+$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar cr shims/librt.a
 
-export PKG_CONFIG_LIBDIR=$GITHUB_WORKSPACE/shims
+export PKG_CONFIG_LIBDIR=$MESON_WORKING_DIR/shims
 
 cat <<EOF > shims/xrandr.pc
 Name: xrandr
@@ -42,8 +40,10 @@ Cflags:
 EOF
 done
 
+envsubst < android.toml > /tmp/android_wrapper.toml
+
 meson setup build --reconfigure \
-    --cross-file android.toml \
+    --cross-file /tmp/android_wrapper.toml \
     -Dbuildtype=debugoptimized \
     -Dplatforms=android,x11 \
     -Dandroid-stub=true \
