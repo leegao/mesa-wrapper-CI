@@ -84,14 +84,14 @@ jobs:
           needs_exe_wrapper = true
 
           [built-in options]
-          c_args = ['-fno-emulated-tls', '-I$GITHUB_WORKSPACE/dummy_inc',
+          c_args = ['-fno-emulated-tls', '-I$GITHUB_WORKSPACE/shims/include',
                     '-DHAVE_STRUCT_TIMESPEC', '-DHAVE_DLFCN_H', '-UHAVE_SECURE_GETENV', '-UHAVE_QSORT_S',
                     '-include', 'fcntl.h', '-include', 'time.h']
-          cpp_args = ['-fno-emulated-tls', '-I$GITHUB_WORKSPACE/dummy_inc',
+          cpp_args = ['-fno-emulated-tls', '-I$GITHUB_WORKSPACE/shims/include',
                       '-DHAVE_STRUCT_TIMESPEC', '-DHAVE_DLFCN_H', '-UHAVE_SECURE_GETENV', '-UHAVE_QSORT_S',
                       '-include', 'fcntl.h', '-include', 'time.h', '-include', 'dlfcn.h']
-          c_link_args = ['-Wl,--allow-shlib-undefined', '-L$GITHUB_WORKSPACE/dummy_lib', '-ldrm']
-          cpp_link_args = ['-Wl,--allow-shlib-undefined', '-L$GITHUB_WORKSPACE/dummy_lib', '-ldrm']
+          c_link_args = ['-Wl,--allow-shlib-undefined', '-L$GITHUB_WORKSPACE/shims', '-ldrm']
+          cpp_link_args = ['-Wl,--allow-shlib-undefined', '-L$GITHUB_WORKSPACE/shims', '-ldrm']
           EOF
 
       - name: Setup Shims for libdrm.so
@@ -135,11 +135,13 @@ jobs:
           $ANDROID_NDK_LATEST_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar cr dummy_lib/librt.a
 
       - name: Configure Meson
+        env:
+          PKG_CONFIG_LIBDIR: ${{ github.workspace }}/shims
         run: |
           meson setup _build \
             --cross-file android-cross.toml \
             -Dbuildtype=debugoptimized \
-            -Dplatforms=android \
+            -Dplatforms=android,x11 \
             -Dandroid-stub=true \
             -Dandroid-libbacktrace=disabled \
             -Dplatform-sdk-version=30 \
