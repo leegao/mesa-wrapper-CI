@@ -1,3 +1,17 @@
+HOW TO BUILD libvulkan_wrapper.so
+==================================
+
+**Locally (x86-64 Linux)**
+
+1. make sure `src/util/anon_file.c`'s `DETECT_OS_ANDROID` case uses `fd = memfd_create(debug_name, MFD_CLOEXEC | MFD_ALLOW_SEALING);`
+2. change setup.py to point to your local NDK installation (typically `"$HOME/Android/Sdk/ndk/XX.X.XXXXXXXX"` if installed through Android Studio)
+3. run `meson compile -C build`
+
+**Github Actions on your own Repo**
+
+1. Copy the `shims/` directory from this repo to your own repo
+2. Copy `android.toml` and `.github/workflows/build.yml` to your own repo
+
 `Mesa <https://mesa3d.org>`_ - The 3D Graphics Library
 ======================================================
 

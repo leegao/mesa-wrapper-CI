@@ -70,7 +70,7 @@ err:
 }
 #endif
 
-#if !(defined(__FreeBSD__) || defined(HAVE_MEMFD_CREATE) || DETECT_OS_ANDROID) || defined __TERMUX__ 
+#if !(defined(__FreeBSD__) || defined(HAVE_MEMFD_CREATE) || DETECT_OS_ANDROID) || defined __TERMUX__
 static int
 create_tmpfile_cloexec(char *tmpname)
 {
@@ -124,7 +124,8 @@ os_create_anonymous_file(int64_t size, const char *debug_name)
 #elif DETECT_OS_ANDROID
    if (!debug_name)
       debug_name = "mesa-shared";
-   fd = syscall(SYS_memfd_create, debug_name, MFD_CLOEXEC | MFD_ALLOW_SEALING);
+   // SDK 30+ removed the syscall
+   fd = memfd_create(debug_name, MFD_CLOEXEC | MFD_ALLOW_SEALING);
 #elif defined(__FreeBSD__)
    fd = shm_open(SHM_ANON, O_CREAT | O_RDWR | O_CLOEXEC, 0600);
 #elif defined(__OpenBSD__)
