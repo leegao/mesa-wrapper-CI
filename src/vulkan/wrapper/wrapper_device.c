@@ -16,6 +16,52 @@
 #include "util/list.h"
 #include "util/simple_mtx.h"
 
+#include <stdio.h>
+#include <unwind.h>
+#include <dlfcn.h>
+
+struct android_backtrace_state {
+    void** current;
+    void** end;
+};
+
+static _Unwind_Reason_Code android_unwind_callback(struct _Unwind_Context* context, void* arg) {
+    struct android_backtrace_state* state = (struct android_backtrace_state*)arg;
+    uintptr_t pc = _Unwind_GetIP(context);
+    if (pc) {
+        if (state->current == state->end) {
+            return _URC_END_OF_STACK;
+        } else {
+            *state->current++ = (void*)pc;
+        }
+    }
+    return _URC_NO_REASON;
+}
+
+static void print_stack_trace(void) {
+    void* buffer[32];
+    struct android_backtrace_state state = {buffer, buffer + 32};
+    _Unwind_Backtrace(android_unwind_callback, &state);
+
+    int count = state.current - buffer;
+    fprintf(stderr, "--- Backtrace (%d frames) ---\n", count);
+
+    for (int i = 0; i < count; i++) {
+        void* addr = buffer[i];
+        const char* symbol = "";
+        Dl_info info;
+        if (dladdr(addr, &info) && info.dli_sname) {
+            symbol = info.dli_sname;
+        }
+        fprintf(stderr, "  #%02d pc %p  %s (%s:%p)\n",
+                i,
+                addr,
+                info.dli_fname ? info.dli_fname : "unknown",
+                symbol[0] ? symbol : "unknown symbol",
+                info.dli_fbase);
+    }
+}
+
 const struct vk_device_extension_table wrapper_device_extensions =
 {
    .KHR_swapchain = true,
@@ -51,11 +97,11 @@ get_wrapper_buffer_from_handle(struct wrapper_device *device, VkBuffer buffer) {
 static struct wrapper_image *
 get_wrapper_image_from_handle(struct wrapper_device *device, VkImage image) {
    struct wrapper_image *wi = NULL;
-   
+
    simple_mtx_lock(&device->resource_mutex);
    wi = _mesa_hash_table_u64_search(device->image_table, (uint64_t) image);
    simple_mtx_unlock(&device->resource_mutex);
-   
+
    return wi;
 }
 
@@ -101,7 +147,7 @@ wrapper_append_required_extensions(const struct vk_device *device,
    if (device->physical->supported_extensions.name) { \
       exts[(*count)++] = "VK_" #name; \
    }
-   
+
    REQUIRED_EXTENSION(KHR_external_fence);
    REQUIRED_EXTENSION(KHR_external_semaphore);
    REQUIRED_EXTENSION(KHR_external_memory);
@@ -123,10 +169,10 @@ wrapper_append_required_extensions(const struct vk_device *device,
 }
 
 static void unlink_vk_struct(VkBaseInStructure *create_info, const VkBaseInStructure **current, VkBaseInStructure **prev) {
-   if (!*prev) 
+   if (!*prev)
       create_info->pNext = (*current)->pNext;
    else
-      (*prev)->pNext = (*current)->pNext;                                                
+      (*prev)->pNext = (*current)->pNext;
 
    *current = (*current)->pNext;
 }
@@ -250,7 +296,7 @@ wrapper_CreateDevice(VkPhysicalDevice physicalDevice,
    device->image_table = _mesa_hash_table_u64_create(NULL);
    device->buffer_table = _mesa_hash_table_u64_create(NULL);
    device->fence_table = _mesa_hash_table_u64_create(NULL);
-   
+
    simple_mtx_init(&device->resource_mutex, mtx_plain);
    device->physical = physical_device;
 
@@ -278,11 +324,11 @@ wrapper_CreateDevice(VkPhysicalDevice physicalDevice,
 
    wrapper_create_info.enabledExtensionCount = wrapper_enable_extension_count;
    wrapper_create_info.ppEnabledExtensionNames = wrapper_enable_extensions;
-   
+
    pdf = (void *)pCreateInfo->pEnabledFeatures;
    pdf2 = __vk_find_struct((void *)pCreateInfo->pNext,
             VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2);
-            
+
 #define DISABLE_FEATURE(f) \
 if (pdf && pdf->f) { \
    pdf->f &= physical_device->base_supported_features.f; \
@@ -315,7 +361,7 @@ if (pdf2 && pdf2->features.f) { \
    if (wrapper_safe_create_device == -1) {
       wrapper_safe_create_device = getenv("WRAPPER_SAFE_CREATE_DEVICE") ? atoi(getenv("WRAPPER_SAFE_CREATE_DEVICE")) : 1;
    }
-   
+
    result = physical_device->dispatch_table.CreateDevice(
       physical_device->dispatch_handle, &wrapper_create_info,
          pAllocator, &device->dispatch_handle);
@@ -328,7 +374,7 @@ if (pdf2 && pdf2->features.f) { \
             physical_device->dispatch_handle, &wrapper_create_info,
                pAllocator, &device->dispatch_handle);
       }
-      
+
       if (result != VK_SUCCESS) {
          WRAPPER_LOG(error, "Failed driver createDevice, res %d", result);
          wrapper_DestroyDevice(wrapper_device_to_handle(device),
@@ -367,7 +413,7 @@ if (pdf2 && pdf2->features.f) { \
    return VK_SUCCESS;
 }
 
-static void 
+static void
 wrapper_buffer_destroy(struct wrapper_device *device,
 					   struct wrapper_buffer *wb,
 					   const VkAllocationCallbacks *pAllocator)
@@ -376,7 +422,7 @@ wrapper_buffer_destroy(struct wrapper_device *device,
       return;
 
    simple_mtx_lock(&device->resource_mutex);
-      
+
    device->dispatch_table.DestroyBuffer(device->dispatch_handle,
       wb->dispatch_handle, pAllocator);
 
@@ -384,7 +430,7 @@ wrapper_buffer_destroy(struct wrapper_device *device,
    list_del(&wb->link);
 
    simple_mtx_unlock(&device->resource_mutex);
-   
+
    vk_object_free(&device->vk, &device->vk.alloc, wb);
 }
 
@@ -407,7 +453,7 @@ wrapper_CreateBuffer(VkDevice _device,
 
    simple_mtx_lock(&device->resource_mutex);
 
-   struct wrapper_buffer *wb = vk_object_zalloc(&device->vk, 
+   struct wrapper_buffer *wb = vk_object_zalloc(&device->vk,
       &device->vk.alloc, sizeof(struct wrapper_buffer), VK_OBJECT_TYPE_BUFFER);
 
    if (!wb) {
@@ -415,7 +461,7 @@ wrapper_CreateBuffer(VkDevice _device,
       simple_mtx_unlock(&device->resource_mutex);
       return VK_ERROR_OUT_OF_HOST_MEMORY;
    }
-      
+
    wb->device = device;
    wb->size = pCreateInfo->size;
    wb->dispatch_handle = *pBuffer;
@@ -424,7 +470,7 @@ wrapper_CreateBuffer(VkDevice _device,
    _mesa_hash_table_u64_insert(device->buffer_table, (uint64_t)wb->dispatch_handle, wb);
 
    simple_mtx_unlock(&device->resource_mutex);
-   
+
    return VK_SUCCESS;
 }
 
@@ -439,7 +485,7 @@ wrapper_BindBufferMemory(VkDevice _device,
 
    res = device->dispatch_table.BindBufferMemory(device->dispatch_handle,
       buffer, memory, memoryOffset);
-   
+
    if (res != VK_SUCCESS) {
       WRAPPER_LOG(error, "Failed to bind buffer memory, res %d", res);
       return res;
@@ -469,7 +515,7 @@ wrapper_DestroyBuffer(VkDevice _device,
    wrapper_buffer_destroy(device, wb, pAllocator);
 }
 
-static void 
+static void
 wrapper_image_destroy(struct wrapper_device *device,
 					  struct wrapper_image *wi,
 					  const VkAllocationCallbacks *pAllocator)
@@ -478,7 +524,7 @@ wrapper_image_destroy(struct wrapper_device *device,
       return;
 
    simple_mtx_lock(&device->resource_mutex);
-      
+
    device->dispatch_table.DestroyImage(device->dispatch_handle,
       wi->dispatch_handle, pAllocator);
 
@@ -486,7 +532,7 @@ wrapper_image_destroy(struct wrapper_device *device,
    list_del(&wi->link);
 
    simple_mtx_unlock(&device->resource_mutex);
-   
+
    vk_object_free(&device->vk, &device->vk.alloc, wi);
 }
 
@@ -508,7 +554,7 @@ wrapper_CreateImage(VkDevice _device,
 
    res = device->dispatch_table.CreateImage(device->dispatch_handle,
       &create_info, pAllocator, pImage);
-   
+
    if (res != VK_SUCCESS) {
       WRAPPER_LOG(error, "Failed to create image, res %d", res);
       return res;
@@ -555,7 +601,7 @@ wrapper_CreateImageView(VkDevice _device,
      &create_info, pAllocator, pView);
 
    if (result != VK_SUCCESS)
-   	  WRAPPER_LOG(error, "Failed to create image view, res %d", result);   	  
+   	  WRAPPER_LOG(error, "Failed to create image view, res %d", result);
 
    return result;
 }
@@ -621,7 +667,7 @@ wrapper_QueueSubmit(VkQueue _queue, uint32_t submitCount,
                         submit_info->pCommandBuffers[j]);
          wcb->fence = wf;
          command_buffers[j] = wcb->dispatch_handle;
-         
+
       }
       wrapper_submits[i] = pSubmits[i];
       wrapper_submits[i].pCommandBuffers = command_buffers;
@@ -671,7 +717,7 @@ wrapper_QueueSubmit2(VkQueue _queue, uint32_t submitCount,
    return result;
 }
 
-static void 
+static void
 wrapper_fence_destroy(struct wrapper_device *device,
 					  struct wrapper_fence *wf,
 					  const VkAllocationCallbacks *pAllocator)
@@ -682,13 +728,13 @@ wrapper_fence_destroy(struct wrapper_device *device,
    simple_mtx_lock(&device->resource_mutex);
 
    device->dispatch_table.DestroyFence(device->dispatch_handle,
-      wf->dispatch_handle, pAllocator); 
+      wf->dispatch_handle, pAllocator);
 
    _mesa_hash_table_u64_remove(device->fence_table, (uint64_t)wf->dispatch_handle);
    list_del(&wf->link);
-   
+
    simple_mtx_unlock(&device->resource_mutex);
-   
+
    vk_object_free(&device->vk, &device->vk.alloc, wf);
 }
 
@@ -709,7 +755,7 @@ wrapper_CreateFence(VkDevice _device,
    }
 
    simple_mtx_lock(&device->resource_mutex);
-   
+
    struct wrapper_fence *wf = vk_object_zalloc(&device->vk,
       &device->vk.alloc, sizeof(struct wrapper_fence), VK_OBJECT_TYPE_FENCE);
    if (!wf) {
@@ -804,7 +850,7 @@ wrapper_CreateShaderModule(VkDevice _device,
 
    if (wrapper_no_patch_OpConstComp == -1)
       wrapper_no_patch_OpConstComp = getenv("WRAPPER_NO_PATCH_OPCONSTCOMP") && atoi(getenv("WRAPPER_NO_PATCH_OPCONSTCOMP"));
-      
+
    VkShaderModuleCreateInfo create_info = *pCreateInfo;
 
    simple_mtx_lock(&device->resource_mutex);
@@ -821,10 +867,15 @@ wrapper_CreateShaderModule(VkDevice _device,
 
    if (WRAPPER_LOG_LEVEL(shader))
       dump_shader_code(create_info.pCode, create_info.codeSize);
-   
-   return device->dispatch_table.CreateShaderModule(
+
+   VkResult result = device->dispatch_table.CreateShaderModule(
       device->dispatch_handle, &create_info, pAllocator, pShaderModule);
-}						   						   
+
+   fprintf(stderr, "[wrapper] CreateShaderModule result: %i, at %p\n", result, *pShaderModule);
+   // print_stack_trace();
+
+   return result;
+}
 
 static VkResult
 wrapper_command_buffer_create(struct wrapper_device *device,
@@ -869,7 +920,7 @@ wrapper_AllocateCommandBuffers(VkDevice _device,
    VK_FROM_HANDLE(wrapper_device, device, _device);
    VkResult result;
    uint32_t i;
-   
+
    result = device->dispatch_table.AllocateCommandBuffers(
       device->dispatch_handle, pAllocateInfo, pCommandBuffers);
    if (result != VK_SUCCESS)
@@ -894,7 +945,7 @@ wrapper_AllocateCommandBuffers(VkDevice _device,
       device->dispatch_table.FreeCommandBuffers(
          device->dispatch_handle, pAllocateInfo->commandPool,
          pAllocateInfo->commandBufferCount - i, pCommandBuffers + i);
-      
+
       for (i = 0; i < pAllocateInfo->commandBufferCount; i++) {
          pCommandBuffers[i] = VK_NULL_HANDLE;
       }
@@ -917,7 +968,7 @@ wrapper_CmdCopyBufferToImage(VkCommandBuffer commandBuffer,
    VkResult res;
 
    struct wrapper_device *device = wcb->device;
-   struct wrapper_image *wi = get_wrapper_image_from_handle(device, dstImage);   
+   struct wrapper_image *wi = get_wrapper_image_from_handle(device, dstImage);
    struct wrapper_buffer *wb = get_wrapper_buffer_from_handle(device, srcBuffer);
    VkFormat format = wi->info.format;
    int texel_size = get_texel_size_for_format(get_format_for_bcn(format));
@@ -929,11 +980,11 @@ wrapper_CmdCopyBufferToImage(VkCommandBuffer commandBuffer,
    }
 
    simple_mtx_lock(&device->resource_mutex);
-   
+
    if (!wb->is_mapped) {
       res = device->dispatch_table.MapMemory(device->dispatch_handle,
          wb->memory, wb->offset, wb->size, 0, &wb->mapped_address);
-         
+
       if (res != VK_SUCCESS) {
          WRAPPER_LOG(error, "Failed to map source buffer memory, res %d", res);
          simple_mtx_unlock(&device->resource_mutex);
@@ -942,7 +993,7 @@ wrapper_CmdCopyBufferToImage(VkCommandBuffer commandBuffer,
 
       wb->is_mapped = 1;
    }
-   
+
    for (int i = 0; i < regionCount; i++) {
       VkBufferImageCopy copy_region = pRegions[i];
       int w = copy_region.imageExtent.width;
@@ -1004,7 +1055,7 @@ wrapper_CmdCopyBufferToImage(VkCommandBuffer commandBuffer,
       }
 
       decompress_bcn_format(wb->mapped_address, staging_wb->mapped_address, w, h, format, offset);
-      
+
       copy_region.bufferOffset = 0;
       copy_region.bufferRowLength = 0;
       copy_region.bufferImageHeight = 0;
@@ -1083,9 +1134,9 @@ wrapper_DestroyDevice(VkDevice _device, const VkAllocationCallbacks* pAllocator)
                             &device->device_memory_list, link) {
       wrapper_device_memory_destroy(mem);
    }
-   
+
    simple_mtx_unlock(&device->resource_mutex);
-   
+
    list_for_each_entry_safe(struct wrapper_buffer, wb,
                             &device->buffer_list, link) {
       wrapper_buffer_destroy(device, wb, pAllocator);
@@ -1150,4 +1201,19 @@ wrapper_GetPrivateData(VkDevice _device, VkObjectType objectType,
    uint64_t object_handle = unwrap_device_object(objectType, objectHandle);
    return device->dispatch_table.GetPrivateData(device->dispatch_handle,
       objectType, object_handle, privateDataSlot, pData);
+}
+
+VKAPI_ATTR VkResult VKAPI_CALL
+wrapper_CreateDescriptorSetLayout(
+   VkDevice _device,
+   const VkDescriptorSetLayoutCreateInfo* pCreateInfo,
+   const VkAllocationCallbacks* pAllocator,
+   VkDescriptorSetLayout* pSetLayout) {
+   VK_FROM_HANDLE(wrapper_device, device, _device);
+
+   fprintf(stderr, "wrapper_CreateDescriptorSetLayout called\n");
+   // print_stack_trace();
+
+   return device->dispatch_table.CreateDescriptorSetLayout(device->dispatch_handle,
+      pCreateInfo, pAllocator, pSetLayout);
 }

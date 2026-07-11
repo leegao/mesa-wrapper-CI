@@ -18,8 +18,8 @@ static struct wrapper_log wrapper_log_options[] = {
 
 uint64_t wrapper_log_mask;
 
-static void get_formatted_date_time(char *buf, size_t length) 
-{  
+static void get_formatted_date_time(char *buf, size_t length)
+{
    time_t rawtime = time(NULL);
    struct tm *ptm = localtime(&rawtime);
 
@@ -41,7 +41,7 @@ char *get_executable_name() {
          path = ptr + 1;
       close(fd);
    }
-   
+
    return path;
 }
 
@@ -51,7 +51,7 @@ static unsigned long long get_debug_flag(const char *option) {
    while (wrapper_log_options[index].name != NULL) {
       if (!strcmp(wrapper_log_options[index].name, option))
          return wrapper_log_options[index].value;
-         
+
       index++;
    }
 
@@ -92,16 +92,16 @@ void write_to_logfile(const char *fmt, const char *level, ...)  {
       char date[256];
 
       get_formatted_date_time(date, 256);
-      
+
       if (!wrapper_log_filename)
          asprintf(&wrapper_log_filename, "%s/%s_%s", WRAPPER_LOG_PATH, get_executable_name(), date);
-         
+
       if (!strcmp("stdout", wrapper_log_filename)) {
          wrapper_log_file = stdout;
        }
        else {
          wrapper_log_file = fopen(wrapper_log_filename, "w");
-       } 
+       }
    }
 
    if (wrapper_log_file) {
@@ -126,15 +126,16 @@ void init_wrapper_logging()
 }
 
 void dump_shader_code(const uint32_t *code, size_t size) {
-   char *file; 	
+   char *file;
    static int index = 0;
-   
-   asprintf(&file, "%s/%s_shader_%d.spv", WRAPPER_SHADER_LOG_PATH, get_executable_name(), index); 
 
-   FILE *fp = fopen(file, "wb"); 
+   fprintf(stderr, "Dumping shader code to %s/%s_shader_%d.spv\n", WRAPPER_SHADER_LOG_PATH, get_executable_name(), index);
+   asprintf(&file, "%s/%s_shader_%d.spv", WRAPPER_SHADER_LOG_PATH, get_executable_name(), index);
+
+   FILE *fp = fopen(file, "wb");
    if (fp) {
-      fwrite(code, 1, size, fp); 
-      fclose(fp); 
+      fwrite(code, 1, size, fp);
+      fclose(fp);
    }
 
    index++;
@@ -162,6 +163,7 @@ wrapper_debug_utils_messenger(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeve
    }
 
    if (vvl_log_file) {
+      fprintf(stderr, "[%s] Code %i : %s\n", messageIdName, messageIdNumber, message);
       fprintf(vvl_log_file, "[%s] Code %i : %s\n", messageIdName, messageIdNumber, message);
       fflush(vvl_log_file);
    }

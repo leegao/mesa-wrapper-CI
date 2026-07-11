@@ -1,0 +1,318 @@
+esync: up and running.
+Failed to open /etc/machine-id, error No such file or directory.
+0024:fixme:fsync:do_fsync futexes not supported on this platform.
+_r_debug not found in ld.so
+002c:fixme:fsync:do_fsync futexes not supported on this platform.
+_r_debug not found in ld.so
+0034:fixme:fsync:do_fsync futexes not supported on this platform.
+_r_debug not found in ld.so
+0040:fixme:fsync:do_fsync futexes not supported on this platform.
+_r_debug not found in ld.so
+0068:fixme:fsync:do_fsync futexes not supported on this platform.
+0070:fixme:hid:handle_IRP_MN_QUERY_ID Unhandled type 00000005
+0070:fixme:hid:handle_IRP_MN_QUERY_ID Unhandled type 00000005
+0070:fixme:hid:handle_IRP_MN_QUERY_ID Unhandled type 00000005
+0070:fixme:hid:handle_IRP_MN_QUERY_ID Unhandled type 00000005
+008c:fixme:hid:handle_IRP_MN_QUERY_ID Unhandled type 00000005
+004c:err:ntoskrnl:ZwLoadDriver failed to create driver L"\\Registry\\Machine\\System\\CurrentControlSet\\Services\\SharedGpuResources": c0000142
+0034:fixme:service:scmdatabase_autostart_services Auto-start service L"SharedGpuResources" failed to start: 1114
+008c:fixme:xinput:pdo_pnp IRP_MN_QUERY_ID type 5, not implemented!
+_r_debug not found in ld.so
+008c:fixme:xinput:pdo_pnp IRP_MN_QUERY_ID type 5, not implemented!
+0098:fixme:fsync:do_fsync futexes not supported on this platform.
+008c:fixme:xinput:pdo_pnp IRP_MN_QUERY_ID type 5, not implemented!
+008c:fixme:xinput:pdo_pnp IRP_MN_QUERY_ID type 5, not implemented!
+00b4:err:nsi:poll_netlink bind failed, errno 13.
+_r_debug not found in ld.so
+00c0:fixme:fsync:do_fsync futexes not supported on this platform.
+_r_debug not found in ld.so
+00d0:fixme:fsync:do_fsync futexes not supported on this platform.
+00d0:err:environ:init_peb starting L"C:\\windows\\winhandler.exe" in experimental ARM64EC mode
+00d0:fixme:process:NtSetInformationProcess (0xffffffffffffffff,0x000007d0,0x21ccd0,0x00000004) stub
+00d0:fixme:process:NtSetInformationProcess (0xffffffffffffffff,0x000007d1,0x21ccf8,0x00000008) stub
+00d0:fixme:process:NtSetInformationProcess (0xffffffffffffffff,0x000007d0,0x21cd60,0x00000004) stub
+00c0:err:ole:start_rpcss Failed to start RpcSs service
+00c0:err:explorer:start_tabtip_process Couldn't start tabtip.exe: error 2
+_r_debug not found in ld.so
+00e4:fixme:fsync:do_fsync futexes not supported on this platform.
+00e4:err:environ:init_peb starting L"D:\\Mina.the.Hollower-GoldBerg\\MinaTheHollower.exe" in experimental ARM64EC mode
+00e4:fixme:process:NtSetInformationProcess (0xffffffffffffffff,0x000007d0,0x11ccd0,0x00000004) stub
+00e4:fixme:process:NtSetInformationProcess (0xffffffffffffffff,0x000007d1,0x11ccf8,0x00000008) stub
+00e4:fixme:process:NtSetInformationProcess (0xffffffffffffffff,0x000007d0,0x11cd60,0x00000004) stub
+00e4:fixme:file:NtLockFile I/O completion on lock not implemented yet
+_r_debug not found in ld.so
+00ec:fixme:fsync:do_fsync futexes not supported on this platform.
+00ec:err:environ:init_peb starting L"D:\\Mina.the.Hollower-GoldBerg\\handler.exe" in experimental ARM64EC mode
+00ec:fixme:process:NtSetInformationProcess (0xffffffffffffffff,0x000007d0,0x11ccd0,0x00000004) stub
+00ec:fixme:process:NtSetInformationProcess (0xffffffffffffffff,0x000007d1,0x11ccf8,0x00000008) stub
+00ec:fixme:process:NtSetInformationProcess (0xffffffffffffffff,0x000007d0,0x11cd60,0x00000004) stub
+00ec:fixme:process:SetProcessShutdownParameters (00000100, 00000001): partial stub.
+00f4:fixme:file:NtLockFile I/O completion on lock not implemented yet
+0134:err:service:device_notify_proc failed to open RPC handle, error 1722
+00e4:fixme:combase:RoGetActivationFactory (L"Windows.Gaming.Input.RawGameController", {eb8d0792-e95a-4b19-afc7-0a59f8bf759e}, 00000001410989D0): semi-stub
+00e4:fixme:input:raw_controller_2_get_DisplayName iface 0000000013490618, value 000000000011FB60 stub!
+00e4:fixme:combase:RoGetActivationFactory (L"Windows.Gaming.Input.Gamepad", {8bbce529-d49c-39e9-9560-e47dde96b7c8}, 00000001410989B0): semi-stub
+00e4:fixme:xinput:XInputGetBatteryInformation index 0, type 0, battery 0000000141098920.
+0144:fixme:kernelbase:AppPolicyGetThreadInitializationType FFFFFFFFFFFFFFFA, 000000001888FF80
+wine: setpriority -19 for pid -1 failed: 3
+wine: setpriority -19 for pid -1 failed: 3
+0150:fixme:avrt:AvSetMmThreadCharacteristicsW (L"Pro Audio",00000000193EFF08): stub
+wine: setpriority -2 for pid -1 failed: 3
+0154:fixme:avrt:AvSetMmThreadCharacteristicsW (L"Audio",00000000198FFFB0): stub
+warn:  CreateDXGIFactory2: Ignoring flags
+info:  Game: MinaTheHollower.exe
+info:  DXVK: v2.3.1
+info:  Vulkan: Found vkGetInstanceProcAddr in winevulkan.dll @ 0x4ffb425bd0
+info:  Built-in extension providers:
+info:    Win32 WSI
+info:    OpenVR
+info:    OpenXR
+info:  OpenVR: could not open registry key, status 2
+info:  OpenVR: Failed to locate module
+info:  Enabled instance extensions:
+info:    VK_EXT_surface_maintenance1
+info:    VK_KHR_get_surface_capabilities2
+info:    VK_KHR_surface
+info:    VK_KHR_win32_surface
+[info]: Spoofing core feature logicOp: reporting = VK_TRUE, driver = VK_FALSE
+[info]: Spoofing core feature pipelineStatisticsQuery: reporting = VK_TRUE, driver = VK_FALSE
+[info]: Spoofing core feature shaderResourceMinLod: reporting = VK_TRUE, driver = VK_FALSE
+[info]: Spoofing core feature shaderResourceResidency: reporting = VK_TRUE, driver = VK_FALSE
+[info]: Spoofing core feature sparseBinding: reporting = VK_TRUE, driver = VK_FALSE
+[info]: Spoofing core feature sparseResidencyAliased: reporting = VK_TRUE, driver = VK_FALSE
+[info]: Spoofing core feature sparseResidencyBuffer: reporting = VK_TRUE, driver = VK_FALSE
+[info]: Spoofing core feature sparseResidencyImage2D: reporting = VK_TRUE, driver = VK_FALSE
+[info]: Spoofing core feature vertexPipelineStoresAndAtomics: reporting = VK_TRUE, driver = VK_FALSE
+[info]: Spoofing core property limits.bufferImageGranularity: reporting = 65536, driver = 1
+[info]: Spoofing core property sparseProperties.residencyNonResidentStrict: reporting = 1, driver = 0
+[info]: Spoofing core property sparseProperties.residencyStandard2DBlockShape: reporting = 1, driver = 0
+[info]: ASDF
+[info]: Spoofing extension VK_EXT_calibrated_timestamps: version 1
+[info]: Spoofing extension VK_EXT_depth_clip_enable: version 1
+[info]: Spoofing extension VK_EXT_vertex_attribute_divisor: version 3
+[info]: Spoofing extension VK_KHR_push_descriptor: version 1
+[info]: ASDF
+[info]: Spoofing extension VK_EXT_calibrated_timestamps
+[info]: Spoofing extension VK_EXT_depth_clip_enable
+[info]: Spoofing extension VK_EXT_vertex_attribute_divisor
+[info]: Spoofing extension VK_KHR_push_descriptor
+[info]: Spoofing property maxCustomBorderColorSamplers in VkPhysicalDeviceCustomBorderColorPropertiesEXT: reporting = 2048, driver = 4294967295
+[info]: Spoofing property storageTexelBufferOffsetSingleTexelAlignment in VkPhysicalDeviceVulkan13Properties: reporting = 1, driver = 0
+[info]: Spoofing property maxPerStageDescriptorUpdateAfterBindSampledImages in VkPhysicalDeviceVulkan12Properties: reporting = 1000000, driver = 500000
+[info]: Spoofing property maxPerStageDescriptorUpdateAfterBindStorageBuffers in VkPhysicalDeviceVulkan12Properties: reporting = 1000000, driver = 500000
+[info]: Spoofing property maxPerStageDescriptorUpdateAfterBindStorageImages in VkPhysicalDeviceVulkan12Properties: reporting = 1000000, driver = 500000
+[info]: Spoofing property subgroupSupportedOperations in VkPhysicalDeviceVulkan11Properties: reporting = 159, driver = 0
+[info]: Spoofing property subgroupSupportedStages in VkPhysicalDeviceVulkan11Properties: reporting = 48, driver = 0
+[info]: Spoofing feature vertexAttributeInstanceRateDivisor in VkPhysicalDeviceVertexAttributeDivisorFeaturesEXT: reporting = VK_TRUE, driver = VK_FALSE
+[info]: Spoofing feature vertexAttributeInstanceRateZeroDivisor in VkPhysicalDeviceVertexAttributeDivisorFeaturesEXT: reporting = VK_TRUE, driver = VK_FALSE
+[info]: Spoofing feature geometryStreams in VkPhysicalDeviceTransformFeedbackFeaturesEXT: reporting = VK_TRUE, driver = VK_FALSE
+[info]: Spoofing feature nullDescriptor in VkPhysicalDeviceRobustness2FeaturesEXT: reporting = VK_TRUE, driver = VK_FALSE
+[info]: Spoofing feature robustBufferAccess2 in VkPhysicalDeviceRobustness2FeaturesEXT: reporting = VK_TRUE, driver = VK_FALSE
+[info]: Spoofing feature robustImageAccess2 in VkPhysicalDeviceRobustness2FeaturesEXT: reporting = VK_TRUE, driver = VK_FALSE
+[info]: Spoofing feature depthClipEnable in VkPhysicalDeviceDepthClipEnableFeaturesEXT: reporting = VK_TRUE, driver = VK_FALSE
+info:  Wrapper(Mali-G615 MC2):
+info:    Driver : Wrapper driver 44.1.0
+info:    Memory Heap[0]: 
+info:      Size: 7353 MiB
+info:      Flags: 0x1
+info:      Memory Type[0]: Property Flags = 0x7
+info:      Memory Type[1]: Property Flags = 0xb
+info:      Memory Type[2]: Property Flags = 0x11
+info:    Memory Heap[1]: 
+info:      Size: 100 MiB
+info:      Flags: 0x1
+info:      Memory Type[3]: Property Flags = 0x21
+warn:  DXGI: Found monitors not associated with any adapter, using fallback
+info:  Adapter LUID 0: 0:3f4
+3739.803:00e0:00e4:warn:vkd3d-proton:openvr_instance_extensions: Failed to open VR registry key, status 2.
+3739.805:00e0:00e4:warn:vkd3d-proton:openxr_vulkan_extensions: wineopenxr.dll is missing required symbols.
+3739.808:00e0:00e4:info:vkd3d-proton:vkd3d_instance_apply_application_workarounds: Program name: "MinaTheHollower.exe" (hash: c366a7a52676d871)
+3739.809:00e0:00e4:info:vkd3d-proton:vkd3d_instance_deduce_config_flags_from_environment: shader_cache is used, global_pipeline_cache is enforced.
+3739.809:00e0:00e4:info:vkd3d-proton:vkd3d_config_flags_init_once: VKD3D_CONFIG=''.
+3739.813:00e0:00e4:info:vkd3d-proton:vkd3d_get_vk_version: vkd3d-proton - applicationVersion: 2.14.1.
+3739.814:00e0:00e4:info:vkd3d-proton:vkd3d_instance_init: vkd3d-proton - build: 0d66699b1b1e250.
+[info]: ASDF
+[info]: ASDF
+[info]: Spoofing extension VK_EXT_calibrated_timestamps
+[info]: Spoofing extension VK_EXT_depth_clip_enable
+[info]: Spoofing extension VK_EXT_robustness2
+[info]: Spoofing extension VK_EXT_vertex_attribute_divisor
+[info]: Spoofing extension VK_KHR_push_descriptor
+3739.826:00e0:00e4:warn:vkd3d-proton:openvr_device_extensions: Failed to open VR registry key, status 2.
+3739.826:00e0:00e4:warn:vkd3d-proton:openxr_vulkan_extensions: wineopenxr.dll is missing required symbols.
+[info]: Spoofing property maxPushDescriptors in VkPhysicalDevicePushDescriptorPropertiesKHR: reporting = 32, driver = 0
+3739.885:00e0:00e4:info:vkd3d-proton:vkd3d_init_device_caps: Not all relevant pipeline stages are supported by EXT_dgc. Skipping EXT.
+[info]: ASDF
+[info]: ASDF
+[info]: Spoofing extension VK_EXT_calibrated_timestamps
+[info]: Spoofing extension VK_EXT_depth_clip_enable
+[info]: Spoofing extension VK_EXT_robustness2
+[info]: Spoofing extension VK_EXT_vertex_attribute_divisor
+[info]: Spoofing extension VK_KHR_push_descriptor
+[info]: Adding extension VK_EXT_device_fault
+[info]: Enabling VK_EXT_device_fault features
+[info]: Enabling storageBuffer8BitAccess
+[info]: Enabling storageBuffer16BitAccess
+[info]: Enabling shaderFloat16 and shaderInt8
+[info]: Masking extension: VK_KHR_push_descriptor
+[info]: Masking extension: VK_EXT_calibrated_timestamps
+[info]: Masking extension: VK_EXT_depth_clip_enable
+[info]: Masking extension: VK_EXT_robustness2
+[info]: Masking extension: VK_EXT_vertex_attribute_divisor
+[info]: Masking feature dualSrcBlend in VkPhysicalDeviceFeatures
+[info]: Masking feature logicOp in VkPhysicalDeviceFeatures
+[info]: Masking feature pipelineStatisticsQuery in VkPhysicalDeviceFeatures
+[info]: Masking feature shaderResourceMinLod in VkPhysicalDeviceFeatures
+[info]: Masking feature shaderResourceResidency in VkPhysicalDeviceFeatures
+[info]: Masking feature sparseBinding in VkPhysicalDeviceFeatures
+[info]: Masking feature sparseResidencyAliased in VkPhysicalDeviceFeatures
+[info]: Masking feature sparseResidencyBuffer in VkPhysicalDeviceFeatures
+[info]: Masking feature sparseResidencyImage2D in VkPhysicalDeviceFeatures
+[info]: Masking feature vertexPipelineStoresAndAtomics in VkPhysicalDeviceFeatures
+[info]: Masking feature vertexAttributeInstanceRateDivisor in VkPhysicalDeviceVertexAttributeDivisorFeaturesEXT
+[info]: Masking feature vertexAttributeInstanceRateZeroDivisor in VkPhysicalDeviceVertexAttributeDivisorFeaturesEXT
+[info]: Masking feature geometryStreams in VkPhysicalDeviceTransformFeedbackFeaturesEXT
+[info]: Masking feature nullDescriptor in VkPhysicalDeviceRobustness2FeaturesEXT
+[info]: Masking feature robustBufferAccess2 in VkPhysicalDeviceRobustness2FeaturesEXT
+[info]: Masking feature robustImageAccess2 in VkPhysicalDeviceRobustness2FeaturesEXT
+[info]: Masking feature depthClipEnable in VkPhysicalDeviceDepthClipEnableFeaturesEXT
+[info]: Dispatch not found: vkCmdBindDescriptorSets2 / vkCmdBindDescriptorSets2KHR
+[info]: Dispatch not found: vkCmdPushConstants2 / vkCmdPushConstants2KHR
+[info]: Dispatch not found: vkCmdDrawIndirectCountAMD / vkCmdDrawIndirectCountAMDKHR
+[info]: Dispatch not found: vkCmdDrawIndexedIndirectCountAMD / vkCmdDrawIndexedIndirectCountAMDKHR
+[info]: Dispatch not found: vkCreateSharedSwapchainsKHR / vkCreateSharedSwapchainsKHRKHR
+[info]: Dispatch not found: vkDebugMarkerSetObjectTagEXT / vkDebugMarkerSetObjectTagEXTKHR
+[info]: Dispatch not found: vkDebugMarkerSetObjectNameEXT / vkDebugMarkerSetObjectNameEXTKHR
+[info]: Dispatch not found: vkCmdDebugMarkerBeginEXT / vkCmdDebugMarkerBeginEXTKHR
+[info]: Dispatch not found: vkCmdDebugMarkerEndEXT / vkCmdDebugMarkerEndEXTKHR
+[info]: Dispatch not found: vkCmdDebugMarkerInsertEXT / vkCmdDebugMarkerInsertEXTKHR
+[info]: Dispatch not found: vkDeviceSetApiDumpState / vkDeviceSetApiDumpStateKHR
+[info]: create_bcn_compute_pipelines took 1424 ms
+3741.356:00e0:00e4:warn:vkd3d-proton:d3d12_device_create_vkd3d_queues: Could not allocate an out of band queue for queue family 0. All out of band work will happen on the in band queue.
+3741.366:00e0:00e4:warn:vkd3d-proton:vkd3d_init_formats: Mapping VK_FORMAT_A8_UNORM_KHR to VK_FORMAT_R8_UNORM.
+3741.367:00e0:00e4:info:vkd3d-proton:vkd3d_memory_info_decide_hvv_usage: Topology: UMA-like topology.
+3741.367:00e0:00e4:info:vkd3d-proton:vkd3d_memory_info_upload_hvv_memory_properties: Topology: HVV usage is allowed, using DEVICE_LOCAL | HOST_COHERENT for UPLOAD.
+3741.380:00e0:00e4:info:vkd3d-proton:vkd3d_bindless_state_get_bindless_flags: Device does not support VK_EXT_mutable_descriptor_type (or VALVE).
+3741.592:00e0:00e4:warn:vkd3d-proton:d3d12_device_caps_shader_model_override: Overriding supported shader model: 6_6.
+3741.593:00e0:00e4:warn:vkd3d-proton:d3d12_device_caps_init_feature_options1: No device info available for TotalLaneCount = 512.
+3741.593:00e0:00e4:fixme:vkd3d-proton:d3d12_device_caps_init_feature_options1: TotalLaneCount = 512, may be inaccurate.
+3741.594:00e0:00e4:warn:vkd3d-proton:d3d12_device_caps_override: Overriding feature level: 0xc000.
+3741.596:00e0:00e4:info:vkd3d-proton:vkd3d_pipeline_library_init_disk_cache: Remapping VKD3D_SHADER_CACHE to: vkd3d-proton.cache.
+3741.596:00e0:00e4:info:vkd3d-proton:vkd3d_pipeline_library_init_disk_cache: Attempting to load disk cache from: vkd3d-proton.cache.
+3741.605:00e0:0170:info:vkd3d-proton:vkd3d_pipeline_library_disk_thread_main: Performing async setup of stream archive ...
+3741.617:00e0:0170:info:vkd3d-proton:vkd3d_pipeline_library_disk_cache_merge: No write cache exists. No need to merge any disk caches.
+3741.623:00e0:0170:info:vkd3d-proton:vkd3d_pipeline_library_disk_cache_initial_setup: Merging pipeline libraries took 15.529 ms.
+3741.635:00e0:0170:info:vkd3d-proton:vkd3d_pipeline_library_disk_cache_initial_setup: Mapping read-only cache took 6.163 ms.
+3741.636:00e0:0170:info:vkd3d-proton:vkd3d_pipeline_library_disk_cache_initial_setup: Parsing stream archive took 0.416 ms.
+3741.636:00e0:0170:info:vkd3d-proton:vkd3d_pipeline_library_disk_cache_initial_setup: Cannot load existing on-disk cache due to driver version mismatch.
+3741.636:00e0:0170:info:vkd3d-proton:vkd3d_pipeline_library_disk_thread_main: Done performing async setup of stream archive.
+3741.656:00e0:00e4:warn:vkd3d-proton:openvr_instance_extensions: Failed to open VR registry key, status 2.
+3741.656:00e0:00e4:warn:vkd3d-proton:openxr_vulkan_extensions: wineopenxr.dll is missing required symbols.
+3741.658:00e0:00e4:info:vkd3d-proton:vkd3d_get_vk_version: vkd3d-proton - applicationVersion: 2.14.1.
+3741.658:00e0:00e4:info:vkd3d-proton:vkd3d_instance_init: vkd3d-proton - build: 0d66699b1b1e250.
+[info]: ASDF
+[info]: ASDF
+[info]: Spoofing extension VK_EXT_calibrated_timestamps
+[info]: Spoofing extension VK_EXT_depth_clip_enable
+[info]: Spoofing extension VK_EXT_robustness2
+[info]: Spoofing extension VK_EXT_vertex_attribute_divisor
+[info]: Spoofing extension VK_KHR_push_descriptor
+3741.668:00e0:00e4:warn:vkd3d-proton:openvr_device_extensions: Failed to open VR registry key, status 2.
+3741.668:00e0:00e4:warn:vkd3d-proton:openxr_vulkan_extensions: wineopenxr.dll is missing required symbols.
+3741.718:00e0:00e4:info:vkd3d-proton:vkd3d_init_device_caps: Not all relevant pipeline stages are supported by EXT_dgc. Skipping EXT.
+[info]: ASDF
+[info]: ASDF
+[info]: Spoofing extension VK_EXT_calibrated_timestamps
+[info]: Spoofing extension VK_EXT_depth_clip_enable
+[info]: Spoofing extension VK_EXT_robustness2
+[info]: Spoofing extension VK_EXT_vertex_attribute_divisor
+[info]: Spoofing extension VK_KHR_push_descriptor
+[info]: Adding extension VK_EXT_device_fault
+[info]: Enabling VK_EXT_device_fault features
+[info]: Enabling storageBuffer8BitAccess
+[info]: Enabling storageBuffer16BitAccess
+[info]: Enabling shaderFloat16 and shaderInt8
+[info]: Masking extension: VK_KHR_push_descriptor
+[info]: Masking extension: VK_EXT_calibrated_timestamps
+[info]: Masking extension: VK_EXT_depth_clip_enable
+[info]: Masking extension: VK_EXT_robustness2
+[info]: Masking extension: VK_EXT_vertex_attribute_divisor
+[info]: Masking feature dualSrcBlend in VkPhysicalDeviceFeatures
+[info]: Masking feature logicOp in VkPhysicalDeviceFeatures
+[info]: Masking feature pipelineStatisticsQuery in VkPhysicalDeviceFeatures
+[info]: Masking feature shaderResourceMinLod in VkPhysicalDeviceFeatures
+[info]: Masking feature shaderResourceResidency in VkPhysicalDeviceFeatures
+[info]: Masking feature sparseBinding in VkPhysicalDeviceFeatures
+[info]: Masking feature sparseResidencyAliased in VkPhysicalDeviceFeatures
+[info]: Masking feature sparseResidencyBuffer in VkPhysicalDeviceFeatures
+[info]: Masking feature sparseResidencyImage2D in VkPhysicalDeviceFeatures
+[info]: Masking feature vertexPipelineStoresAndAtomics in VkPhysicalDeviceFeatures
+[info]: Masking feature vertexAttributeInstanceRateDivisor in VkPhysicalDeviceVertexAttributeDivisorFeaturesEXT
+[info]: Masking feature vertexAttributeInstanceRateZeroDivisor in VkPhysicalDeviceVertexAttributeDivisorFeaturesEXT
+[info]: Masking feature geometryStreams in VkPhysicalDeviceTransformFeedbackFeaturesEXT
+[info]: Masking feature nullDescriptor in VkPhysicalDeviceRobustness2FeaturesEXT
+[info]: Masking feature robustBufferAccess2 in VkPhysicalDeviceRobustness2FeaturesEXT
+[info]: Masking feature robustImageAccess2 in VkPhysicalDeviceRobustness2FeaturesEXT
+[info]: Masking feature depthClipEnable in VkPhysicalDeviceDepthClipEnableFeaturesEXT
+[info]: Dispatch not found: vkCmdBindDescriptorSets2 / vkCmdBindDescriptorSets2KHR
+[info]: Dispatch not found: vkCmdPushConstants2 / vkCmdPushConstants2KHR
+[info]: Dispatch not found: vkCmdDrawIndirectCountAMD / vkCmdDrawIndirectCountAMDKHR
+[info]: Dispatch not found: vkCmdDrawIndexedIndirectCountAMD / vkCmdDrawIndexedIndirectCountAMDKHR
+[info]: Dispatch not found: vkCreateSharedSwapchainsKHR / vkCreateSharedSwapchainsKHRKHR
+[info]: Dispatch not found: vkDebugMarkerSetObjectTagEXT / vkDebugMarkerSetObjectTagEXTKHR
+[info]: Dispatch not found: vkDebugMarkerSetObjectNameEXT / vkDebugMarkerSetObjectNameEXTKHR
+[info]: Dispatch not found: vkCmdDebugMarkerBeginEXT / vkCmdDebugMarkerBeginEXTKHR
+[info]: Dispatch not found: vkCmdDebugMarkerEndEXT / vkCmdDebugMarkerEndEXTKHR
+[info]: Dispatch not found: vkCmdDebugMarkerInsertEXT / vkCmdDebugMarkerInsertEXTKHR
+[info]: Dispatch not found: vkDeviceSetApiDumpState / vkDeviceSetApiDumpStateKHR
+[info]: create_bcn_compute_pipelines took 1102 ms
+3742.836:00e0:00e4:warn:vkd3d-proton:d3d12_device_create_vkd3d_queues: Could not allocate an out of band queue for queue family 0. All out of band work will happen on the in band queue.
+3742.847:00e0:00e4:warn:vkd3d-proton:vkd3d_init_formats: Mapping VK_FORMAT_A8_UNORM_KHR to VK_FORMAT_R8_UNORM.
+3742.847:00e0:00e4:info:vkd3d-proton:vkd3d_memory_info_decide_hvv_usage: Topology: UMA-like topology.
+3742.847:00e0:00e4:info:vkd3d-proton:vkd3d_memory_info_upload_hvv_memory_properties: Topology: HVV usage is allowed, using DEVICE_LOCAL | HOST_COHERENT for UPLOAD.
+3742.848:00e0:00e4:info:vkd3d-proton:vkd3d_bindless_state_get_bindless_flags: Device does not support VK_EXT_mutable_descriptor_type (or VALVE).
+3743.020:00e0:00e4:warn:vkd3d-proton:d3d12_device_caps_shader_model_override: Overriding supported shader model: 6_6.
+3743.020:00e0:00e4:warn:vkd3d-proton:d3d12_device_caps_init_feature_options1: No device info available for TotalLaneCount = 512.
+3743.020:00e0:00e4:fixme:vkd3d-proton:d3d12_device_caps_init_feature_options1: TotalLaneCount = 512, may be inaccurate.
+3743.020:00e0:00e4:warn:vkd3d-proton:d3d12_device_caps_override: Overriding feature level: 0xc000.
+3743.020:00e0:00e4:info:vkd3d-proton:vkd3d_pipeline_library_init_disk_cache: Remapping VKD3D_SHADER_CACHE to: vkd3d-proton.cache.
+3743.020:00e0:00e4:info:vkd3d-proton:vkd3d_pipeline_library_init_disk_cache: Attempting to load disk cache from: vkd3d-proton.cache.
+3743.031:00e0:0178:info:vkd3d-proton:vkd3d_pipeline_library_disk_thread_main: Performing async setup of stream archive ...
+3743.042:00e0:0178:info:vkd3d-proton:vkd3d_pipeline_library_disk_cache_merge: No write cache exists. No need to merge any disk caches.
+3743.060:00e0:0178:info:vkd3d-proton:vkd3d_pipeline_library_disk_cache_initial_setup: Merging pipeline libraries took 28.597 ms.
+3743.065:00e0:0178:info:vkd3d-proton:vkd3d_pipeline_library_disk_cache_initial_setup: Mapping read-only cache took 4.976 ms.
+3743.065:00e0:0178:info:vkd3d-proton:vkd3d_pipeline_library_disk_cache_initial_setup: Parsing stream archive took 0.027 ms.
+3743.066:00e0:0178:info:vkd3d-proton:vkd3d_pipeline_library_disk_cache_initial_setup: Cannot load existing on-disk cache due to driver version mismatch.
+3743.066:00e0:0178:info:vkd3d-proton:vkd3d_pipeline_library_disk_thread_main: Done performing async setup of stream archive.
+wine: setpriority 3 for pid -1 failed: 3
+wine: setpriority 3 for pid -1 failed: 3
+00e4:fixme:msctf:ThreadMgr_ActivateEx Unimplemented flags 0x4
+00e4:fixme:imm:ImeSetCompositionString himc 0000000000010070, index 9, comp 0000000140EE9E0C, comp_len 2, read 0000000140EE9E0C, read_len 2 semi-stub!
+00e4:fixme:imm:ImeSetCompositionString Read string unimplemented
+00e4:fixme:imm:NotifyIME himc 0000000000010070, action 0x11, index 0, value 0 stub!
+3744.162:00e0:00e4:info:vkd3d-proton:dxgi_vk_swap_chain_init: Creating swapchain (960 x 544), BufferCount = 3.
+3744.164:00e0:00e4:info:vkd3d-proton:dxgi_vk_swap_chain_init_sync_objects: Enabling frame latency handles.
+3744.194:00e0:00e4:info:vkd3d-proton:dxgi_vk_swap_chain_init_sleep_state: Timer interval is 1.0 ms.
+warn:  DXGI: MakeWindowAssociation: Ignoring flags
+3744.332:00e0:0168:warn:vkd3d-proton:dxgi_vk_swap_chain_Present: Detected excessively slow Present() processing. Potential causes: resize, wait-before-signal.
+err:   readMonitorEdidFromKey: Failed to get EDID reg key size
+err:   DXGI: Failed to parse display metadata + colorimetry info, using blank.
+3744.534:00e0:0168:warn:vkd3d-proton:d3d12_resource_validate_texture_alignment: Invalid resource alignment 0x1000 (required 0x10000).
+3744.540:00e0:0168:warn:vkd3d-proton:d3d12_device_GetResourceAllocationInfo3: Invalid resource desc.
+3744.551:00e0:0180:info:vkd3d-proton:dxgi_vk_swap_chain_recreate_swapchain_in_present_task: Got 4 swapchain images.
+3744.570:00e0:0168:warn:vkd3d-proton:d3d12_resource_validate_texture_alignment: Invalid resource alignment 0x1000 (required 0x10000).
+3744.570:00e0:0168:warn:vkd3d-proton:d3d12_device_GetResourceAllocationInfo3: Invalid resource desc.
+3744.570:00e0:0168:warn:vkd3d-proton:d3d12_resource_validate_texture_alignment: Invalid resource alignment 0x1000 (required 0x10000).
+3744.570:00e0:0168:warn:vkd3d-proton:d3d12_device_GetResourceAllocationInfo3: Invalid resource desc.
+3744.570:00e0:0168:warn:vkd3d-proton:d3d12_resource_validate_texture_alignment: Invalid resource alignment 0x1000 (required 0x10000).
+3744.570:00e0:0168:warn:vkd3d-proton:d3d12_device_GetResourceAllocationInfo3: Invalid resource desc.
+3744.571:00e0:0168:warn:vkd3d-proton:d3d12_resource_validate_texture_alignment: Invalid resource alignment 0x1000 (required 0x10000).
+3744.571:00e0:0168:warn:vkd3d-proton:d3d12_device_GetResourceAllocationInfo3: Invalid resource desc.
+3744.577:00e0:0168:warn:vkd3d-proton:d3d12_resource_validate_texture_alignment: Invalid resource alignment 0x1000 (required 0x10000).
+3744.577:00e0:0168:warn:vkd3d-proton:d3d12_device_GetResourceAllocationInfo3: Invalid resource desc.
+3744.579:00e0:0168:warn:vkd3d-proton:d3d12_resource_validate_texture_alignment: Invalid resource alignment 0x1000 (required 0x10000).
+3744.579:00e0:0168:warn:vkd3d-proton:d3d12_device_GetResourceAllocationInfo3: Invalid resource desc.
+3744.580:00e0:0168:warn:vkd3d-proton:d3d12_resource_validate_texture_alignment: Invalid resource alignment 0x1000 (required 0x10000).
+3744.580:00e0:0168:warn:vkd3d-proton:d3d12_device_GetResourceAllocationInfo3: Invalid resource desc.
+3744.582:00e0:0168:warn:vkd3d-proton:d3d12_resource_validate_texture_alignment: Invalid resource alignment 0x1000 (required 0x10000).
+3744.582:00e0:0168:warn:vkd3d-proton:d3d12_device_GetResourceAllocationInfo3: Invalid resource desc.
