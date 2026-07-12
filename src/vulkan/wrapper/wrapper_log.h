@@ -12,6 +12,7 @@
 #define WRAPPER_LOG_SHADER (1ull << 2)
 #define WRAPPER_LOG_VALIDATION (1ull << 3)
 #define WRAPPER_LOG_BCN (1ull << 4)
+#define WRAPPER_LOG_APIDUMP (1ull << 5)
 
 struct wrapper_log {
 	char *name;

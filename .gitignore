@@ -6,3 +6,6 @@
 /build
 .venv/
 *.patch
+
+# Local dev build notes (not part of the fork)
+BUILD-PIXEL7.md

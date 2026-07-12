@@ -6,6 +6,21 @@
 VkFormat
 get_format_for_bcn(VkFormat bcn_format);
 
+VkFormat
+get_decode_format_for_bcn(VkFormat bcn_format);
+
+int
+is_astc_4x4(VkFormat format);
+
+int
+is_astc_8x8(VkFormat format);
+
+int
+is_astc(VkFormat format);
+
+size_t
+bcn_upload_size(VkFormat bcn_format, int w, int h);
+
 int
 get_texel_size_for_format(VkFormat format);
 
@@ -17,6 +32,7 @@ decompress_bcn_format(void *srcBuffer,
                       void *dstBuffer,
                       int w,
                       int h,
+                      int src_w,
                       VkFormat format,
                       int offset);
 

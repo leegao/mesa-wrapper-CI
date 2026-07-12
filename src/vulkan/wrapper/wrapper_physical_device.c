@@ -1,4 +1,5 @@
 #include <math.h>
+#include <fcntl.h>
 
 #include "wrapper_private.h"
 #include "wrapper_log.h"
@@ -237,7 +238,7 @@ VkResult enumerate_physical_device(struct vk_instance *_instance)
 
      WRAPPER_LOG(info, "GPU Name: %s", pdevice->properties2.properties.deviceName);
      WRAPPER_LOG(info, "Driver Version: %s", get_driver_version(pdevice->properties2.properties.driverVersion));
-     
+
       const char *app_name = instance->vk.app_info.app_name
          ? instance->vk.app_info.app_name : "wrapper";
 
@@ -271,19 +272,78 @@ VkResult enumerate_physical_device(struct vk_instance *_instance)
       }
 
       if (pdevice->driver_properties.driverID == VK_DRIVER_ID_ARM_PROPRIETARY) {
-         if (strstr(engine_name, "DXVK")) {
-            WRAPPER_LOG(info, "Faking VK_EXT_robustness2");
+         bool is_dxvk = strstr(engine_name, "DXVK");
+         bool is_vkd3d = strstr(engine_name, "vkd3d");
+         bool is_d3d = is_dxvk || is_vkd3d;
+         pdevice->is_vkd3d = is_vkd3d;
+         if (is_d3d) {
+            WRAPPER_LOG(info, "Faking VK_EXT_robustness2 for engine '%s'", engine_name);
             pdevice->vk.supported_extensions.EXT_robustness2 = true;
-            WRAPPER_LOG(info, "Faking dualSrcBlend feature");
+            supported_features->robustBufferAccess2 = true;
+            supported_features->nullDescriptor = true;
+            if (is_dxvk && engine_version >= VK_MAKE_VERSION(2, 7, 0)) {
+               WRAPPER_LOG(info, "Faking VK_KHR_pipeline_library");
+               pdevice->vk.supported_extensions.KHR_pipeline_library = true;
+            }
+            supported_features->extendedDynamicState = true;
+            supported_features->extendedDynamicState2 = true;
             supported_features->dualSrcBlend = true;
-         	WRAPPER_LOG(info, "Faking multiDrawIndirect feature");
             supported_features->multiDrawIndirect = true;
+         }
+         if (pdevice->base_supported_extensions.KHR_vertex_attribute_divisor) {
+            WRAPPER_LOG(info, "Aliasing VK_EXT_vertex_attribute_divisor -> KHR (Mali has KHR)");
+            pdevice->vk.supported_extensions.EXT_vertex_attribute_divisor = true;
+            pdevice->vk.supported_extensions.KHR_vertex_attribute_divisor = false;
          }
          WRAPPER_LOG(info, "Disabling VK_EXT_calibrated_timestamps");
          pdevice->vk.supported_extensions.EXT_calibrated_timestamps = false;
-         WRAPPER_LOG(info, "Disabling VK_EXT_extended_dynamic_state and VK_EXT_extended_dynamic_state2");
-         pdevice->vk.supported_extensions.EXT_extended_dynamic_state = false;
-         pdevice->vk.supported_extensions.EXT_extended_dynamic_state2 = false;
+         if (!is_d3d) {
+            WRAPPER_LOG(info, "Disabling VK_EXT_extended_dynamic_state and VK_EXT_extended_dynamic_state2");
+            pdevice->vk.supported_extensions.EXT_extended_dynamic_state = false;
+            pdevice->vk.supported_extensions.EXT_extended_dynamic_state2 = false;
+         }
+      }
+
+      /* Samsung Xclipse: vkd3d 3.x needs VK_EXT_dynamic_rendering_unused_attachments
+       * for correct rendering (draws with unused/mismatched render targets get
+       * dropped -> objects vanish, e.g. the player character), but Xclipse doesn't
+       * expose it. Advertise it -- it is a validation relaxation the RDNA driver
+       * tolerates; the feature is faked in Features2 and the struct is unlinked from
+       * the real CreateDevice pNext. */
+      if (pdevice->driver_properties.driverID == VK_DRIVER_ID_SAMSUNG_PROPRIETARY) {
+         bool samsung_d3d = strstr(engine_name, "DXVK") || strstr(engine_name, "vkd3d");
+         pdevice->is_vkd3d = strstr(engine_name, "vkd3d") != NULL;
+         if (samsung_d3d &&
+             !pdevice->base_supported_extensions.EXT_dynamic_rendering_unused_attachments) {
+            WRAPPER_LOG(info, "Faking VK_EXT_dynamic_rendering_unused_attachments for Xclipse");
+            pdevice->vk.supported_extensions.EXT_dynamic_rendering_unused_attachments = true;
+         }
+      }
+
+      /* DXVK > 2.4.1 requires VK_KHR_maintenance5. Some drivers (e.g. Xclipse)
+       * don't expose it. Emulate it for any D3D client whose base driver lacks
+       * it (NOT Samsung-gated -- the base-lacks guard limits it to drivers that
+       * actually need it). Feature faked in Features2, struct unlinked from the
+       * real CreateDevice, entrypoints implemented in wrapper_device.c. */
+      {
+         bool is_d3d = strstr(engine_name, "DXVK") || strstr(engine_name, "vkd3d");
+         if (is_d3d && !pdevice->base_supported_extensions.KHR_maintenance5) {
+            WRAPPER_LOG(info, "Faking VK_KHR_maintenance5 (base driver lacks it)");
+            pdevice->vk.supported_extensions.KHR_maintenance5 = true;
+         }
+      }
+
+      /* VK_KHR_push_descriptor: vkd3d/DXVK effectively require it, but some
+       * drivers (e.g. Mali r44) don't expose it. Advertise + emulate it for D3D
+       * clients whose base driver lacks it. maxPushDescriptors is reported in
+       * wrapper_GetPhysicalDeviceProperties2; the entrypoints are emulated in
+       * wrapper_device.c. */
+      {
+         bool is_d3d = strstr(engine_name, "DXVK") || strstr(engine_name, "vkd3d");
+         if (is_d3d && !pdevice->base_supported_extensions.KHR_push_descriptor) {
+            WRAPPER_LOG(info, "Faking VK_KHR_push_descriptor (base driver lacks it)");
+            pdevice->vk.supported_extensions.KHR_push_descriptor = true;
+         }
       }
 
       char *wrapper_emulate_bcn_env = getenv("WRAPPER_EMULATE_BCN");
@@ -357,8 +417,47 @@ wrapper_GetPhysicalDeviceFeatures(VkPhysicalDevice physicalDevice,
 
 VKAPI_ATTR void VKAPI_CALL
 wrapper_GetPhysicalDeviceFeatures2(VkPhysicalDevice physicalDevice,
-                                   VkPhysicalDeviceFeatures2* pFeatures) {                                                              
+                                   VkPhysicalDeviceFeatures2* pFeatures) {
+   VK_FROM_HANDLE(wrapper_physical_device, pdevice, physicalDevice);
    vk_common_GetPhysicalDeviceFeatures2(physicalDevice, pFeatures);
+
+   if (pdevice->driver_properties.driverID == VK_DRIVER_ID_ARM_PROPRIETARY &&
+       pdevice->vk.supported_extensions.EXT_robustness2) {
+      vk_foreach_struct(s, pFeatures->pNext) {
+         if (s->sType == VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ROBUSTNESS_2_FEATURES_EXT) {
+            VkPhysicalDeviceRobustness2FeaturesEXT *r2 =
+               (VkPhysicalDeviceRobustness2FeaturesEXT *)s;
+            r2->robustBufferAccess2 = VK_TRUE;
+            r2->nullDescriptor = VK_TRUE;
+            if (pdevice->is_vkd3d)
+               r2->robustImageAccess2 = VK_TRUE;
+         }
+         if (s->sType == VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTENDED_DYNAMIC_STATE_FEATURES_EXT) {
+            ((VkPhysicalDeviceExtendedDynamicStateFeaturesEXT *)s)->extendedDynamicState = VK_TRUE;
+         }
+         if (s->sType == VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTENDED_DYNAMIC_STATE_2_FEATURES_EXT) {
+            ((VkPhysicalDeviceExtendedDynamicState2FeaturesEXT *)s)->extendedDynamicState2 = VK_TRUE;
+         }
+         if (s->sType == VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VERTEX_ATTRIBUTE_DIVISOR_FEATURES_EXT) {
+            VkPhysicalDeviceVertexAttributeDivisorFeaturesEXT *vad =
+               (VkPhysicalDeviceVertexAttributeDivisorFeaturesEXT *)s;
+            vad->vertexAttributeInstanceRateDivisor = VK_TRUE;
+            vad->vertexAttributeInstanceRateZeroDivisor = VK_TRUE;
+         }
+      }
+   }
+
+   if (pdevice->driver_properties.driverID == VK_DRIVER_ID_SAMSUNG_PROPRIETARY) {
+      vk_foreach_struct(s, pFeatures->pNext) {
+         if (s->sType == VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_UNUSED_ATTACHMENTS_FEATURES_EXT &&
+             pdevice->vk.supported_extensions.EXT_dynamic_rendering_unused_attachments)
+            ((VkPhysicalDeviceDynamicRenderingUnusedAttachmentsFeaturesEXT *)s)
+               ->dynamicRenderingUnusedAttachments = VK_TRUE;
+         if (s->sType == VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MAINTENANCE_5_FEATURES &&
+             pdevice->vk.supported_extensions.KHR_maintenance5)
+            ((VkPhysicalDeviceMaintenance5Features *)s)->maintenance5 = VK_TRUE;
+      }
+   }
 }
 
 VKAPI_ATTR void VKAPI_CALL
@@ -390,6 +489,12 @@ wrapper_GetPhysicalDeviceProperties(VkPhysicalDevice physicalDevice,
 
    if (api_version > 0)
       pProperties->apiVersion = api_version;
+
+   /* See wrapper_GetPhysicalDeviceProperties2: bump push constant size to the
+    * DXVK-required minimum on Xclipse. */
+   if (pdevice->driver_properties.driverID == VK_DRIVER_ID_SAMSUNG_PROPRIETARY &&
+       pProperties->limits.maxPushConstantsSize < 256)
+      pProperties->limits.maxPushConstantsSize = 256;
 }
 
 VKAPI_ATTR void VKAPI_CALL
@@ -424,8 +529,33 @@ wrapper_GetPhysicalDeviceProperties2(VkPhysicalDevice physicalDevice,
    if (api_version > 0)
       pProperties->properties.apiVersion = api_version;
 
+   /* DXVK 2.6+ requires maxPushConstantsSize >= 256 (its unified "push data"
+    * model) and skips the adapter otherwise. Xclipse reports less; the RDNA
+    * hardware underneath handles 256 (desktop AMD reports it), Samsung's driver
+    * just reports conservatively -- bump it so DXVK proceeds. NOTE: unlike the
+    * extension fakes, this is a real driver limit; if the driver enforces it in
+    * vkCreatePipelineLayout this will surface as pipeline-creation failures. */
+   if (pdevice->driver_properties.driverID == VK_DRIVER_ID_SAMSUNG_PROPRIETARY &&
+       pProperties->properties.limits.maxPushConstantsSize < 256)
+      pProperties->properties.limits.maxPushConstantsSize = 256;
+
    vk_foreach_struct(prop, pProperties->pNext) {
       switch (prop->sType) {
+      case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VERTEX_ATTRIBUTE_DIVISOR_PROPERTIES_EXT:
+      {
+         VkPhysicalDeviceVertexAttributeDivisorPropertiesKHR khr_vad = {
+            .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VERTEX_ATTRIBUTE_DIVISOR_PROPERTIES_KHR,
+         };
+         VkPhysicalDeviceProperties2 p2 = {
+            .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2,
+            .pNext = &khr_vad,
+         };
+         pdevice->dispatch_table.GetPhysicalDeviceProperties2(
+            pdevice->dispatch_handle, &p2);
+         ((VkPhysicalDeviceVertexAttributeDivisorPropertiesEXT *)prop)->maxVertexAttribDivisor =
+            khr_vad.maxVertexAttribDivisor;
+         break;
+      }
       case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MAP_MEMORY_PLACED_PROPERTIES_EXT:
       {
          VkPhysicalDeviceMapMemoryPlacedPropertiesEXT *placed_prop =
@@ -442,6 +572,16 @@ wrapper_GetPhysicalDeviceProperties2(VkPhysicalDevice physicalDevice,
       	 texel_prop->storageTexelBufferOffsetAlignmentBytes = 1;
       	 texel_prop->uniformTexelBufferOffsetAlignmentBytes = 1;
       	 break;
+      }
+      case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PUSH_DESCRIPTOR_PROPERTIES:
+      {
+         /* Only override when we're faking the extension; if the base driver has
+          * it natively it already filled a real limit. */
+         if (pdevice->vk.supported_extensions.KHR_push_descriptor &&
+             !pdevice->base_supported_extensions.KHR_push_descriptor)
+            ((VkPhysicalDevicePushDescriptorProperties *)prop)->maxPushDescriptors =
+               WRAPPER_MAX_PUSH_DESCRIPTORS;
+         break;
       }
       case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FLOAT_CONTROLS_PROPERTIES_KHR:
       {
@@ -679,9 +819,9 @@ wrapper_GetPhysicalDeviceImageFormatProperties2(VkPhysicalDevice physicalDevice,
       break;
    }
   
-   return pdevice->dispatch_table.GetPhysicalDeviceImageFormatProperties2(pdevice->dispatch_handle, 
+   return pdevice->dispatch_table.GetPhysicalDeviceImageFormatProperties2(pdevice->dispatch_handle,
       pImageFormatInfo, pImageFormatProperties);
-}                                                
+}
 
 VKAPI_ATTR void VKAPI_CALL
 wrapper_GetPhysicalDeviceFormatProperties(VkPhysicalDevice physicalDevice,
@@ -720,8 +860,59 @@ wrapper_GetPhysicalDeviceFormatProperties(VkPhysicalDevice physicalDevice,
       break;   
    }
    
-   pdevice->dispatch_table.GetPhysicalDeviceFormatProperties(pdevice->dispatch_handle, 
-      format, pFormatProperties);  
+   pdevice->dispatch_table.GetPhysicalDeviceFormatProperties(pdevice->dispatch_handle,
+      format, pFormatProperties);
+}
+
+VKAPI_ATTR void VKAPI_CALL
+wrapper_GetPhysicalDeviceFormatProperties2(VkPhysicalDevice physicalDevice,
+                                           VkFormat format,
+                                           VkFormatProperties2* pFormatProperties)
+{
+   VK_FROM_HANDLE(wrapper_physical_device, pdevice, physicalDevice);
+
+   pdevice->dispatch_table.GetPhysicalDeviceFormatProperties2(pdevice->dispatch_handle,
+      format, pFormatProperties);
+
+   switch (format) {
+   case VK_FORMAT_BC1_RGB_UNORM_BLOCK:
+   case VK_FORMAT_BC1_RGB_SRGB_BLOCK:
+   case VK_FORMAT_BC1_RGBA_UNORM_BLOCK:
+   case VK_FORMAT_BC1_RGBA_SRGB_BLOCK:
+   case VK_FORMAT_BC2_UNORM_BLOCK:
+   case VK_FORMAT_BC2_SRGB_BLOCK:
+   case VK_FORMAT_BC3_UNORM_BLOCK:
+   case VK_FORMAT_BC3_SRGB_BLOCK:
+   case VK_FORMAT_BC4_UNORM_BLOCK:
+   case VK_FORMAT_BC4_SNORM_BLOCK:
+   case VK_FORMAT_BC5_UNORM_BLOCK:
+   case VK_FORMAT_BC5_SNORM_BLOCK:
+   case VK_FORMAT_BC6H_UFLOAT_BLOCK:
+   case VK_FORMAT_BC6H_SFLOAT_BLOCK:
+   case VK_FORMAT_BC7_UNORM_BLOCK:
+   case VK_FORMAT_BC7_SRGB_BLOCK:
+      if (pdevice->driver_properties.driverID == VK_DRIVER_ID_SAMSUNG_PROPRIETARY &&
+          format <= 138 && pdevice->emulate_bcn == 3)
+         break;
+
+      if (pdevice->emulate_bcn > 0) {
+         VkFormatFeatureFlags bc = VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT |
+            VK_FORMAT_FEATURE_BLIT_SRC_BIT |
+            VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT |
+            VK_FORMAT_FEATURE_TRANSFER_SRC_BIT | VK_FORMAT_FEATURE_TRANSFER_DST_BIT;
+         pFormatProperties->formatProperties.optimalTilingFeatures |= bc;
+
+         VkBaseOutStructure *s = (VkBaseOutStructure *)pFormatProperties->pNext;
+         while (s) {
+            if (s->sType == VK_STRUCTURE_TYPE_FORMAT_PROPERTIES_3)
+               ((VkFormatProperties3 *)s)->optimalTilingFeatures |= bc;
+            s = s->pNext;
+         }
+      }
+      break;
+   default:
+      break;
+   }
 }
 
 VKAPI_ATTR void VKAPI_CALL

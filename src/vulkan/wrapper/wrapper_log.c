@@ -1,3 +1,5 @@
+#include <time.h>
+
 #include "wrapper_log.h"
 #include "wrapper_util.h"
 
@@ -13,6 +15,7 @@ static struct wrapper_log wrapper_log_options[] = {
 	{"shader", WRAPPER_LOG_SHADER},
 	{"validation", WRAPPER_LOG_VALIDATION},
 	{"bcn", WRAPPER_LOG_BCN},
+	{"apidump", WRAPPER_LOG_APIDUMP},
 	{NULL, 0}
 };
 
@@ -109,6 +112,22 @@ void write_to_logfile(const char *fmt, const char *level, ...)  {
       vfprintf(wrapper_log_file, fmt, va_args);
       fprintf(wrapper_log_file, "\n");
       fflush(wrapper_log_file);
+   }
+
+   /* When WRAPPER_DIAG is on, also emit to stderr — which for a D3D process is
+    * redirected into the single per-game diag file, so the wrapper's own
+    * decisions (faked extensions, disabled features) join the device report and
+    * the vkd3d/DXVK output in one shareable file. */
+   static int diag = -1;
+   if (diag == -1)
+      diag = getenv("WRAPPER_DIAG") ? atoi(getenv("WRAPPER_DIAG")) : 0;
+   if (diag) {
+      va_list va2;
+      va_start(va2, level);
+      fprintf(stderr, "[%s]: ", level);
+      vfprintf(stderr, fmt, va2);
+      fprintf(stderr, "\n");
+      va_end(va2);
    }
 
    va_end(va_args);

@@ -10,6 +10,7 @@
 #include <sys/mman.h>
 #include <sys/ioctl.h>
 #include <linux/dma-heap.h>
+#include <fcntl.h>
 
 static int
 safe_ioctl(int fd, unsigned long request, void *arg)

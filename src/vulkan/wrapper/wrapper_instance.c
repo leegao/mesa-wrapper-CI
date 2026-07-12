@@ -37,9 +37,8 @@ const struct vk_instance_extension_table wrapper_instance_extensions = {
    .EXT_headless_surface = true,
 };
 
-static const char *layers[] = {
-   "VK_LAYER_KHRONOS_validation"
-};
+#define WRAPPER_VALIDATION_LAYER "VK_LAYER_KHRONOS_validation"
+#define WRAPPER_API_DUMP_LAYER   "VK_LAYER_LUNARG_api_dump"
 
 
 static void *vulkan_library_handle;
@@ -110,7 +109,7 @@ static void *get_vulkan_handle()
 
    init_wrapper_logging();
 
-   if (WRAPPER_LOG_LEVEL(validation)) {
+   if (WRAPPER_LOG_LEVEL(validation) || WRAPPER_LOG_LEVEL(apidump)) {
       has_intercepted_layer_paths = set_layer_paths();
    }
 
@@ -308,31 +307,65 @@ wrapper_CreateInstance(const VkInstanceCreateInfo *pCreateInfo,
       
    wrapper_create_info.pApplicationInfo = &wrapper_application_info;
    
-   if (WRAPPER_LOG_LEVEL(validation)) {
-      if (!has_intercepted_layer_paths)
-         return vk_error(NULL, VK_ERROR_LAYER_NOT_PRESENT);
-         
-      uint32_t layer_count = 0;
-      enumerate_instance_layer_properties(&layer_count, NULL);
-
-      if (layer_count == 0) {
-        WRAPPER_LOG(error, "Failed to find Vulkan Validation layer"); 
-      	return vk_error(NULL, VK_ERROR_LAYER_NOT_PRESENT);
+   /* Load whichever debug layers were requested via WRAPPER_LOG_LEVEL:
+    * "validation" -> VK_LAYER_KHRONOS_validation (API-usage errors),
+    * "apidump"    -> VK_LAYER_LUNARG_api_dump (every Vulkan call, very spammy).
+    * Both can be enabled together. */
+   if (WRAPPER_LOG_LEVEL(validation) || WRAPPER_LOG_LEVEL(apidump)) {
+      /* Enumerate available layers (only if the layer-path jailbreak worked). */
+      bool have_validation = false, have_api_dump = false;
+      if (has_intercepted_layer_paths) {
+         uint32_t layer_count = 0;
+         enumerate_instance_layer_properties(&layer_count, NULL);
+         if (layer_count) {
+            VkLayerProperties layer_props[layer_count];
+            enumerate_instance_layer_properties(&layer_count, layer_props);
+            for (uint32_t i = 0; i < layer_count; i++) {
+               if (!strcmp(layer_props[i].layerName, WRAPPER_VALIDATION_LAYER))
+                  have_validation = true;
+               if (!strcmp(layer_props[i].layerName, WRAPPER_API_DUMP_LAYER))
+                  have_api_dump = true;
+            }
+         }
       }
 
-      VkLayerProperties layer_props[layer_count];
-      enumerate_instance_layer_properties(&layer_count, layer_props);
+      bool enable_validation = WRAPPER_LOG_LEVEL(validation) && have_validation;
+      bool enable_api_dump = WRAPPER_LOG_LEVEL(apidump) && have_api_dump;
 
-      for (int i = 0; i < layer_count; i++) {
-         if (!strcmp(layer_props[i].layerName, layers[0])) {
-            wrapper_create_info.enabledLayerCount = 1;
-            wrapper_create_info.ppEnabledLayerNames = layers;
-            const VkBool32 settings_validate_best_practices_arm = VK_TRUE;
-            const VkLayerSettingEXT layer_settings[] = {
-               {layers[0], "validate_best_practices_arm", VK_LAYER_SETTING_TYPE_BOOL32_EXT, 1, &settings_validate_best_practices_arm},
-               {layers[0], "validate_best_practices", VK_LAYER_SETTING_TYPE_BOOL32_EXT, 1, &settings_validate_best_practices_arm}
+      /* If a requested layer can't be set up, warn and continue WITHOUT it --
+       * a game that runs without validation beats one that won't start. Print
+       * to stderr directly since the error log level may not be enabled. */
+      if (WRAPPER_LOG_LEVEL(validation) && !enable_validation)
+         fprintf(stderr, "[wrapper] validation layer requested but unavailable "
+                 "(layer paths %s, layer %s); continuing without it\n",
+                 has_intercepted_layer_paths ? "ok" : "NOT intercepted",
+                 have_validation ? "found" : "not found");
+      if (WRAPPER_LOG_LEVEL(apidump) && !enable_api_dump)
+         fprintf(stderr, "[wrapper] api_dump layer requested but unavailable; "
+                 "continuing without it\n");
+
+      /* The enabled list and settings are read by create_instance() below,
+       * which is outside this block -- give them static lifetime. The layer
+       * name string literals already have static storage. */
+      static const char *enabled_layers[2];
+      uint32_t enabled_layer_count = 0;
+      if (enable_validation)
+         enabled_layers[enabled_layer_count++] = WRAPPER_VALIDATION_LAYER;
+      if (enable_api_dump)
+         enabled_layers[enabled_layer_count++] = WRAPPER_API_DUMP_LAYER;
+
+      if (enabled_layer_count > 0) {
+         wrapper_create_info.enabledLayerCount = enabled_layer_count;
+         wrapper_create_info.ppEnabledLayerNames = enabled_layers;
+
+         /* Best-practices settings only apply to the validation layer. */
+         if (enable_validation) {
+            static const VkBool32 settings_validate_best_practices = VK_TRUE;
+            static const VkLayerSettingEXT layer_settings[] = {
+               {WRAPPER_VALIDATION_LAYER, "validate_best_practices_arm", VK_LAYER_SETTING_TYPE_BOOL32_EXT, 1, &settings_validate_best_practices},
+               {WRAPPER_VALIDATION_LAYER, "validate_best_practices", VK_LAYER_SETTING_TYPE_BOOL32_EXT, 1, &settings_validate_best_practices},
             };
-            VkLayerSettingsCreateInfoEXT layer_settings_info = {
+            static VkLayerSettingsCreateInfoEXT layer_settings_info = {
                VK_STRUCTURE_TYPE_LAYER_SETTINGS_CREATE_INFO_EXT, NULL, 2, layer_settings,
             };
             layer_settings_info.pNext = wrapper_create_info.pNext;
