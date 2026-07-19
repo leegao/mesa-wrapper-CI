@@ -98,6 +98,8 @@ static void init_debug_messenger(VkInstance instance)
 static void *get_vulkan_handle() 
 {
    char *path = getenv("ADRENOTOOLS_DRIVER_PATH");
+   // Hardcoded for Ludashi variant only
+   path = "/data/user/0/com.ludashi.benchmark/files/imagefs/usr/lib/libvulkan_panfrost.so";
    char *redirect_dir = getenv("ADRENOTOOLS_REDIRECT_DIR");
    char *name = getenv("ADRENOTOOLS_DRIVER_NAME");
    char *hooks = getenv("ADRENOTOOLS_HOOKS_PATH");
@@ -122,8 +124,17 @@ static void *get_vulkan_handle()
       int flags = ADRENOTOOLS_DRIVER_CUSTOM;
       if (redirect_dir)
          flags |= ADRENOTOOLS_DRIVER_FILE_REDIRECT;
-         
-      return  adrenotools_open_libvulkan(RTLD_NOW, flags, temp, hooks, path, name, redirect_dir, NULL);
+
+      WRAPPER_LOG(info, "Loading vulkan library from %s", path);
+      void* handle = dlopen(path, RTLD_NOW | RTLD_LOCAL);
+      if (!handle) {
+          fprintf(stderr, "dlopen failed: %s\n", dlerror());
+      } else {
+          fprintf(stderr, "dlopen succeeded: %p\n", handle);
+      }
+
+      return handle;
+      // return  adrenotools_open_libvulkan(RTLD_NOW, flags, temp, hooks, path, name, redirect_dir, NULL);
    }
    else
       return dlopen(DEFAULT_VULKAN_PATH, RTLD_NOW | RTLD_LOCAL);
@@ -150,6 +161,27 @@ static bool vulkan_library_init()
    }
    else {
       fprintf(stderr, "%s", dlerror());
+   }
+
+   if (vulkan_library_handle && !create_instance) {
+      WRAPPER_LOG(info, "Resolving Vulkan entry points using vk_icdGetInstanceProcAddr");
+      PFN_vkGetInstanceProcAddr fp_getInstanceProcAddr = NULL;
+      fp_getInstanceProcAddr = (PFN_vkGetInstanceProcAddr)dlsym(vulkan_library_handle, "vk_icdGetInstanceProcAddr");
+      if (!fp_getInstanceProcAddr) {
+         fp_getInstanceProcAddr = (PFN_vkGetInstanceProcAddr)dlsym(vulkan_library_handle, "vkGetInstanceProcAddr");
+      }
+      get_instance_proc_addr = fp_getInstanceProcAddr;
+      if (fp_getInstanceProcAddr) {
+         create_instance = (PFN_vkCreateInstance) fp_getInstanceProcAddr(NULL, "vkCreateInstance");
+         enumerate_instance_version = (PFN_vkEnumerateInstanceVersion) fp_getInstanceProcAddr(NULL, "vkEnumerateInstanceVersion");
+         enumerate_instance_extension_properties = (PFN_vkEnumerateInstanceExtensionProperties) fp_getInstanceProcAddr(NULL, "vkEnumerateInstanceExtensionProperties");
+         enumerate_instance_layer_properties = (PFN_vkEnumerateInstanceLayerProperties) fp_getInstanceProcAddr(NULL, "vkEnumerateInstanceLayerProperties");
+      }
+   }
+
+   if (!create_instance) {
+      WRAPPER_LOG(error, "Failed to find vkCreateInstance in %p", vulkan_library_handle);
+      return false;
    }
 
    return vulkan_library_handle ? true : false;

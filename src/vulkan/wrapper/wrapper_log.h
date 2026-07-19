@@ -48,6 +48,7 @@ wrapper_debug_utils_messenger(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeve
 
 #define WRAPPER_LOG(level, fmt, ...) \
 do {\
+   fprintf(stderr, "[wrapper] " fmt "\n", ##__VA_ARGS__); \
    if (WRAPPER_LOG_LEVEL(level)) {\
       write_to_logfile(fmt, #level, ##__VA_ARGS__); \
    }\
