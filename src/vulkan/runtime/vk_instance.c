@@ -443,12 +443,14 @@ enumerate_physical_devices_locked(struct vk_instance *instance)
 
    if (instance->physical_devices.try_create_for_drm) {
       result = enumerate_drm_physical_devices_locked(instance);
+      fprintf(stderr, "enumerate_drm_physical_devices_locked result: %d\n", result);
       if (result != VK_SUCCESS) {
          destroy_physical_devices(instance);
          return result;
       }
    }
 
+   fprintf(stderr, "enumerate_physical_devices_locked result: %d\n", result);
    return result;
 }
 
@@ -456,6 +458,8 @@ static VkResult
 enumerate_physical_devices(struct vk_instance *instance)
 {
    VkResult result = VK_SUCCESS;
+   
+   fprintf(stderr, "[ASDF] enumerate_physical_devices - already enumerated: %d\n", instance->physical_devices.enumerated);
 
    mtx_lock(&instance->physical_devices.mutex);
    if (!instance->physical_devices.enumerated) {
@@ -465,6 +469,7 @@ enumerate_physical_devices(struct vk_instance *instance)
    }
    mtx_unlock(&instance->physical_devices.mutex);
 
+   fprintf(stderr, "[ASDF] enumerate_physical_devices: %d\n", result);
    return result;
 }
 
@@ -482,6 +487,7 @@ vk_common_EnumeratePhysicalDevices(VkInstance _instance, uint32_t *pPhysicalDevi
    list_for_each_entry(struct vk_physical_device, pdevice,
                        &instance->physical_devices.list, link) {
       vk_outarray_append_typed(VkPhysicalDevice, &out, element) {
+         fprintf(stderr, "[ASDF] vk_common_EnumeratePhysicalDevices: %d\n", result);
          *element = vk_physical_device_to_handle(pdevice);
       }
    }

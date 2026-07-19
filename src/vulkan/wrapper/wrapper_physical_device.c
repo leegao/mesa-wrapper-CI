@@ -116,6 +116,8 @@ VkResult enumerate_physical_device(struct vk_instance *_instance)
    int wrapper_emulate_bcn;
    VkResult result;
 
+   WRAPPER_LOG(info, "inside enumerate_physical_device");
+
    result = instance->dispatch_table.EnumeratePhysicalDevices(
       instance->dispatch_handle, &physical_device_count, NULL);
 
@@ -133,6 +135,8 @@ VkResult enumerate_physical_device(struct vk_instance *_instance)
       WRAPPER_LOG(error, "Failed to enumerate physical devices, res %d", result);	
       return result;
    }
+
+   WRAPPER_LOG(info, "enumerate_physical_device: %d", physical_device_count);
    
    for (int i = 0; i < physical_device_count; i++) {
       PFN_vkGetInstanceProcAddr get_instance_proc_addr;
@@ -156,6 +160,7 @@ VkResult enumerate_physical_device(struct vk_instance *_instance)
                                        NULL, NULL, NULL,
                                        &dispatch_table);
       if (result != VK_SUCCESS) {
+         WRAPPER_LOG(error, "vk_physical_device_init failed: %d", result);
          vk_free(&_instance->alloc, pdevice);
          return result;
       }
@@ -323,6 +328,8 @@ VkResult enumerate_physical_device(struct vk_instance *_instance)
       list_addtail(&pdevice->vk.link, &_instance->physical_devices.list);
    }
 
+   
+   WRAPPER_LOG(info, "vk_physical_device_init success");
    return VK_SUCCESS;
 }
 
@@ -758,4 +765,4 @@ wrapper_GetPhysicalDeviceMemoryProperties2(VkPhysicalDevice physicalDevice,
 
    if (wrapper_vmem_max_size > 0)
       pMemoryProperties->memoryProperties.memoryHeaps[0].size = (VkDeviceSize)wrapper_vmem_max_size * 1048576;
-}								
+}
