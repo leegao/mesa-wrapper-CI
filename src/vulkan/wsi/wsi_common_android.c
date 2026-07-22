@@ -134,7 +134,7 @@ wsi_create_ahardware_buffer_image_mem(const struct wsi_swapchain *chain,
    }
 
    VkImageCreateInfo new_image_create_info = info->create;
-   if (ahardware_buffer_format_props.externalFormat)
+   if (ahardware_buffer_format_props.externalFormat && !wsi->emulate_bgra8)
       new_image_create_info.flags &=
          ~VK_IMAGE_CREATE_MUTABLE_FORMAT_BIT;
    new_image_create_info.format = ahardware_buffer_format_props.format;
