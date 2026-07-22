@@ -463,6 +463,22 @@ wrapper_AllocateMemory(VkDevice _device,
    if (vk_find_struct_const(pAllocateInfo, EXPORT_MEMORY_ALLOCATE_INFO))
       goto fallback;
 
+   const VkMemoryDedicatedAllocateInfo *dedicated_allocate_info =
+         vk_find_struct_const((void*) pAllocateInfo->pNext, MEMORY_DEDICATED_ALLOCATE_INFO);
+   
+   static int bypass_swapchains = -1;
+   if (bypass_swapchains == -1) 
+      bypass_swapchains = getenv("WRAPPER_BYPASS_SWAPCHAIN_PLACED") ?
+                          atoi(getenv("WRAPPER_BYPASS_SWAPCHAIN_PLACED")) : 0; // TODO: turn on by default if safe
+
+   if (bypass_swapchains && dedicated_allocate_info && dedicated_allocate_info->image != VK_NULL_HANDLE) {
+      struct wrapper_image *img = get_wrapper_image_from_handle(device, dedicated_allocate_info->image);
+      if (img && img->is_wsi_image) {
+         WRAPPER_LOG(info, "Bypassing EXT_map_memory_placed emulation for swapchain image");
+         goto fallback;
+      }
+   }
+   
    WRAPPER_LOG(info, "Emulating vkAllocateMemory");
 
    simple_mtx_lock(&device->resource_mutex);
@@ -509,13 +525,25 @@ wrapper_AllocateMemory(VkDevice _device,
    if (result != VK_SUCCESS) {
       WRAPPER_LOG(error, "Failed to allocate memory, res %d", result);
       wrapper_device_memory_destroy(mem);
+
+      if (dedicated_allocate_info && dedicated_allocate_info->image != VK_NULL_HANDLE) {
+         struct wrapper_image *img = get_wrapper_image_from_handle(device, dedicated_allocate_info->image);
+         if (img && img->is_wsi_image) {
+            // Fixes failure to blit on ion-heap (< GKI 5.10) Mali devices at the cost of
+            // not being able to mmap these.
+            WRAPPER_LOG(error, "EXT_map_memory_placed emulation failed for swapchain image, bypassing emulation");
+            simple_mtx_lock(&device->resource_mutex);
+            goto fallback;
+         }
+      }
+
       vk_error(device, result);
    } else {
       *pMemory = mem->dispatch_handle;
    }
 
 out:
-   simple_mtx_unlock(&mem->device->resource_mutex);
+   simple_mtx_unlock(&device->resource_mutex);
    return result;
 
 fallback:
