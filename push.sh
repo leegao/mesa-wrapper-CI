@@ -10,7 +10,8 @@ push_vvl() {
 	adb shell run-as com.ludashi.benchmark "ls -lh files/imagefs/usr/share/vulkan/explicit_layer.d/$1"
 }
 
-meson compile -C build
+sudo docker run --rm -v "$(pwd):/workspace" wrapper-compiler
+
 cd build/src/vulkan/wrapper/
 push libvulkan_wrapper.so
 cd -
