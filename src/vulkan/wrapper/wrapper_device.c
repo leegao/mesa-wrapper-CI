@@ -48,7 +48,7 @@ get_wrapper_buffer_from_handle(struct wrapper_device *device, VkBuffer buffer) {
    return wb;
 }
 
-static struct wrapper_image *
+struct wrapper_image *
 get_wrapper_image_from_handle(struct wrapper_device *device, VkImage image) {
    struct wrapper_image *wi = NULL;
    
@@ -499,6 +499,18 @@ wrapper_CreateImage(VkDevice _device,
    VK_FROM_HANDLE(wrapper_device, device, _device);
    VkResult res;
    VkImageCreateInfo create_info = *pCreateInfo;
+   bool is_emulated_bgra8 = false;
+
+   // Wrapper specific extension for B8G8R8A8 AHB img emulation for the swapchain
+   VkBaseInStructure *prev = (VkBaseInStructure *) pCreateInfo;
+   for (const VkBaseInStructure *s = pCreateInfo->pNext; s; s = s->pNext) {
+      if (s->sType == VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EMULATED_B8G8R8A8_CREATE_INFO_EXT) {
+         is_emulated_bgra8 = true;
+         prev->pNext = s->pNext; // unlink
+         break;
+      }
+      prev = (VkBaseInStructure *) s;
+   }
 
    if (is_emulated_bcn(device->physical, pCreateInfo->format)) {
       create_info.format = get_format_for_bcn(pCreateInfo->format);
@@ -528,6 +540,7 @@ wrapper_CreateImage(VkDevice _device,
    wi->device = device;
    wi->info = *pCreateInfo;
    wi->dispatch_handle = *pImage;
+   wi->is_emulated_bgra8 = is_emulated_bgra8;
 
    list_add(&wi->link, &device->image_list);
    _mesa_hash_table_u64_insert(device->image_table, (uint64_t)wi->dispatch_handle, wi);
