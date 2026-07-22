@@ -10,6 +10,7 @@
 #include <sys/mman.h>
 #include <sys/ioctl.h>
 #include <linux/dma-heap.h>
+#include <errno.h>
 
 static int
 safe_ioctl(int fd, unsigned long request, void *arg)
@@ -35,26 +36,121 @@ dma_heap_alloc(int heap_fd, size_t size) {
    return alloc_data.fd;
 }
 
+// https://cs.android.com/android/kernel/superproject/+/common-android-4.9:common/drivers/staging/android/uapi/ion.h
+struct ion_allocation_data_1 {
+	size_t len;
+	size_t align;
+	unsigned int heap_id_mask;
+	unsigned int flags;
+	__u32 handle;
+};
+
+struct ion_fd_data_1 {
+	__u32 handle;
+	int fd;
+};
+
+struct ion_handle_data_1 {
+	__u32 handle;
+};
+
+#define ION_IOC_MAGIC       'I'
+#define ION_IOC_ALLOC_1       _IOWR(ION_IOC_MAGIC, 0, struct ion_allocation_data_1)
+#define ION_IOC_FREE_1        _IOWR(ION_IOC_MAGIC, 1, struct ion_handle_data_1)
+#define ION_IOC_MAP_1         _IOWR(ION_IOC_MAGIC, 2, struct ion_fd_data_1)
+#define ION_IOC_SHARE_1		   _IOWR(ION_IOC_MAGIC, 4, struct ion_fd_data_1)
+
+// https://cs.android.com/android/kernel/superproject/+/common-android-4.14:common/drivers/staging/android/uapi/ion.h
+struct ion_allocation_data_2 {
+   __u64 len;
+   __u32 heap_id_mask;
+   __u32 flags;
+   __u32 fd;
+   __u32 unused;
+};
+
+struct ion_heap_query_2 {
+	__u32 cnt; /* Total number of heaps to be copied */
+	__u32 reserved0; /* align to 64bits */
+	__u64 heaps; /* buffer to be populated */
+	__u32 reserved1;
+	__u32 reserved2;
+};
+
+#define ION_IOC_ALLOC_2       _IOWR(ION_IOC_MAGIC, 0, struct ion_allocation_data_2)
+#define ION_IOC_HEAP_QUERY_2     _IOWR(ION_IOC_MAGIC, 8, struct ion_heap_query_2)
+
 static int
-ion_heap_alloc(int heap_fd, size_t size) {
-   struct ion_allocation_data {
-      __u64 len;
-      __u32 heap_id_mask;
-      __u32 flags;
-      __u32 fd;
-      __u32 unused;
-   } alloc_data = {
+ion_heap_alloc_2(int heap_fd, size_t size) {
+   struct ion_allocation_data_2 alloc_data = {
       .len = size,
-      /* ION_HEAP_SYSTEM | ION_SYSTEM_HEAP_ID */
+      /* ION_HEAP_SYSTEM | ION_SYSTEM_HEAP_ID (Qcom) */
       .heap_id_mask = (1U << 0) | (1U << 25),
-      .flags = 0, /* uncached */
+      .flags = 0,
    };
 
-   if (safe_ioctl(heap_fd, _IOWR('I', 0, struct ion_allocation_data),
-                  &alloc_data) < 0)
-      return -1;
+   if (safe_ioctl(heap_fd, ION_IOC_ALLOC_2, &alloc_data) < 0) {
+      alloc_data.heap_id_mask = 1U;
+      if (safe_ioctl(heap_fd, ION_IOC_ALLOC_2, &alloc_data) < 0) {
+         return -1;
+      }
+   }
 
    return alloc_data.fd;
+}
+
+static int
+ion_heap_alloc(int heap_fd, size_t size) {
+   static int ion_iface = 0;
+   if (!ion_iface) {
+      // See https://github.com/mirror/mesa/blob/e24dc5bd1e7fe6101bdc866fb16a15a8fcae1aae/src/freedreno/vulkan/tu_knl_kgsl.cc#L1789
+      struct ion_handle_data_1 probe = { .handle = 0 };
+      if (safe_ioctl(heap_fd, ION_IOC_FREE_1, &probe) >= 0 || errno != ENOTTY) {
+         ion_iface = 1;
+      } else {
+         ion_iface = 2;
+      }
+      WRAPPER_LOG("info", "Picking ion interface: %d", ion_iface);
+   }
+
+   if (ion_iface == 2) {
+      return ion_heap_alloc_2(heap_fd, size);
+   }
+
+   // see https://github.com/mirror/mesa/blob/e24dc5bd1e7fe6101bdc866fb16a15a8fcae1aae/src/freedreno/vulkan/tu_knl_kgsl.cc#L122
+   // bo_init_new_ion_legacy
+   struct ion_allocation_data_1 alloc_data = {
+      .len = size,
+      .align = 0,
+      .heap_id_mask = (1U << 0) | (1U << 25) /* QCom specific */,
+      .flags = 0,
+   };
+
+   if (safe_ioctl(heap_fd, ION_IOC_ALLOC_1, &alloc_data) < 0) {
+      alloc_data.align = 4096;
+      alloc_data.heap_id_mask = 1U;
+      if (safe_ioctl(heap_fd, ION_IOC_ALLOC_1, &alloc_data) < 0) {
+         return -1;
+      }
+   }
+
+   struct ion_fd_data_1 fd_data = {
+      .handle = alloc_data.handle,
+      .fd = -1,
+   };
+   if (safe_ioctl(heap_fd, ION_IOC_SHARE_1, &fd_data) < 0) {
+      int saved_errno = errno;
+      struct ion_handle_data_1 free_data = { .handle = alloc_data.handle };
+      safe_ioctl(heap_fd, ION_IOC_FREE_1, &free_data);
+      WRAPPER_LOG("error", "Failed to share handle, errno=%d", alloc_data.handle, saved_errno);
+      errno = saved_errno;
+      return -1;
+   }
+
+   struct ion_handle_data_1 free_data = { .handle = alloc_data.handle };
+   safe_ioctl(heap_fd, ION_IOC_FREE_1, &free_data);
+
+   return fd_data.fd;
 }
 
 static int
@@ -539,4 +635,3 @@ wrapper_UnmapMemory2KHR(VkDevice _device,
    mem->map_address = NULL;
    return VK_SUCCESS;
 }
-
