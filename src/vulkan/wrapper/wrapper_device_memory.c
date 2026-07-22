@@ -142,7 +142,7 @@ ion_heap_alloc(int heap_fd, size_t size) {
       int saved_errno = errno;
       struct ion_handle_data_1 free_data = { .handle = alloc_data.handle };
       safe_ioctl(heap_fd, ION_IOC_FREE_1, &free_data);
-      WRAPPER_LOG("error", "Failed to share handle, errno=%d", alloc_data.handle, saved_errno);
+      WRAPPER_LOG("error", "Failed to share handle, errno=%d", saved_errno);
       errno = saved_errno;
       return -1;
    }
@@ -166,7 +166,6 @@ wrapper_dmabuf_alloc(struct wrapper_device *device, size_t size)
    return fd;
 }
 
-
 uint32_t
 wrapper_select_device_memory_type(struct wrapper_device *device,
                                   VkMemoryPropertyFlags flags) {
@@ -180,6 +179,26 @@ wrapper_select_device_memory_type(struct wrapper_device *device,
       }
    }
    return idx < props->memoryTypeCount ? idx : UINT32_MAX;
+}
+
+static uint32_t
+wrapper_select_allowed_device_memory_type(struct wrapper_device *device,
+                                          uint32_t allowed_type_bits,
+                                          VkMemoryPropertyFlags flags) {
+   VkPhysicalDeviceMemoryProperties *props =
+      &device->physical->memory_properties;
+   int idx;
+
+   for (idx = 0; idx < props->memoryTypeCount; idx++) {
+      if (!(allowed_type_bits & (1U << idx))) {
+         continue;
+      }
+
+      if (props->memoryTypes[idx].propertyFlags & flags) {
+         return idx;
+      }
+   }
+   return UINT32_MAX;
 }
 
 static VkResult
@@ -209,6 +228,17 @@ wrapper_allocate_memory_dmaheap(struct wrapper_device *device,
       return VK_ERROR_INVALID_EXTERNAL_HANDLE;
    }
 
+   int memory_type_index = wrapper_select_allowed_device_memory_type(device,
+      memory_fd_props.memoryTypeBits,
+      VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT |
+      VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+      VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+
+   if (memory_type_index == UINT32_MAX) {
+      WRAPPER_LOG(error, "No compatible memory type found for fd %d", *out_fd);
+      return VK_ERROR_INVALID_EXTERNAL_HANDLE;
+   }
+
    import_fd_info = (VkImportMemoryFdInfoKHR) {
       .sType = VK_STRUCTURE_TYPE_IMPORT_MEMORY_FD_INFO_KHR,
       .pNext = pAllocateInfo->pNext,
@@ -217,12 +247,7 @@ wrapper_allocate_memory_dmaheap(struct wrapper_device *device,
    };
    allocate_info = *pAllocateInfo;
    allocate_info.pNext = &import_fd_info;
-   allocate_info.memoryTypeIndex =
-      wrapper_select_device_memory_type(device,
-         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT |
-         VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
-         VK_MEMORY_PROPERTY_HOST_COHERENT_BIT |
-         memory_fd_props.memoryTypeBits);
+   allocate_info.memoryTypeIndex = memory_type_index;
 
    result = device->dispatch_table.AllocateMemory(
       device->dispatch_handle, &allocate_info,
