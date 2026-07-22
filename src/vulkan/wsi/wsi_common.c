@@ -120,10 +120,6 @@ wsi_device_init(struct wsi_device *wsi,
    };
    GetPhysicalDeviceProperties2(pdevice, &wsi->properties2);
 
-   static int emulate_bgra8 = -1;
-   if (emulate_bgra8 == -1)
-      emulate_bgra8 = getenv("WRAPPER_EMULATE_BGRA8") ? atoi(getenv("WRAPPER_EMULATE_BGRA8")) : 0;
-
    const char *wine_preload_reserve = getenv("WINEPRELOADRESERVE"); // e.g. 000400000-0008b4000 or 140000000-1400a8000
    bool is_win32 = false;
 
@@ -139,8 +135,16 @@ wsi_device_init(struct wsi_device *wsi,
    WRAPPER_LOG(info, "is_win32=%d, WINEPRELOADRESERVE=%s",
       is_win32, wine_preload_reserve ? wine_preload_reserve : "nullptr");
 
-   // TODO(leegao): enable generally for all Mali devices (enables direct rendering on Mali)
-   wsi->emulate_bgra8 = (pddp.driverID == VK_DRIVER_ID_ARM_PROPRIETARY && is_win32) || emulate_bgra8;
+   static int emulate_bgra8 = -1;
+   if (emulate_bgra8 == -1) {
+      // TODO(leegao): enable generally for all Mali devices (enables direct rendering on Mali)
+      bool is_mali_win32 = pddp.driverID == VK_DRIVER_ID_ARM_PROPRIETARY && is_win32;
+      emulate_bgra8 = getenv("WRAPPER_EMULATE_BGRA8") ? atoi(getenv("WRAPPER_EMULATE_BGRA8")) : is_mali_win32;
+      int dont_emulate_bgra8 = getenv("WRAPPER_DONT_EMULATE_BGRA8") ? atoi(getenv("WRAPPER_DONT_EMULATE_BGRA8")) : 0;
+      if (dont_emulate_bgra8) emulate_bgra8 = 0;
+   }
+
+   wsi->emulate_bgra8 = emulate_bgra8;
 
    wsi->maxImageDimension2D = wsi->properties2.properties.limits.maxImageDimension2D;
    assert(wsi->properties2.properties.limits.optimalBufferCopyRowPitchAlignment <= UINT32_MAX);
