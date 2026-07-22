@@ -2,6 +2,7 @@
 #include "wsi_common_private.h"
 #include "vk_log.h"
 #include "../wrapper/wrapper_log.h"
+#include "../wrapper/wrapper_private.h"
 
 #include <android/hardware_buffer.h>
 
@@ -138,6 +139,14 @@ wsi_create_ahardware_buffer_image_mem(const struct wsi_swapchain *chain,
       new_image_create_info.flags &=
          ~VK_IMAGE_CREATE_MUTABLE_FORMAT_BIT;
    new_image_create_info.format = ahardware_buffer_format_props.format;
+
+   VkEmulatedB8G8R8A8CreateInfoExt emulated_bgra8_ext = {
+      .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EMULATED_B8G8R8A8_CREATE_INFO_EXT,
+      .pNext = new_image_create_info.pNext,
+   };
+   if (wsi->emulate_bgra8) {
+      new_image_create_info.pNext = &emulated_bgra8_ext;
+   }
 
    result = wsi->CreateImage(chain->device,
                              &new_image_create_info,
