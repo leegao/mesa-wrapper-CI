@@ -5,6 +5,7 @@
 
 #include <android/hardware_buffer.h>
 
+#define AHARDWAREBUFFER_FORMAT_R8G8B8A8_UNORM 1
 #define AHARDWAREBUFFER_FORMAT_B8G8R8A8_UNORM 5
 
 static enum wsi_swapchain_blit_type
@@ -13,12 +14,15 @@ wsi_get_ahardware_buffer_blit_type(const struct wsi_device *wsi,
 {
    AHardwareBuffer *ahardware_buffer;
    VkResult result;
+   uint32_t probe_format = wsi->emulate_bgra8
+         ? AHARDWAREBUFFER_FORMAT_R8G8B8A8_UNORM
+         : AHARDWAREBUFFER_FORMAT_B8G8R8A8_UNORM;
    
    if (AHardwareBuffer_allocate(&(AHardwareBuffer_Desc){
       .width = 500,
       .height = 500,
       .layers = 1,
-      .format = AHARDWAREBUFFER_FORMAT_B8G8R8A8_UNORM,
+      .format = probe_format,
       .usage = AHARDWAREBUFFER_USAGE_GPU_FRAMEBUFFER |
                AHARDWAREBUFFER_USAGE_GPU_SAMPLED_IMAGE |
                AHARDWAREBUFFER_USAGE_CPU_READ_OFTEN |
@@ -83,6 +87,7 @@ wsi_get_ahardware_buffer_blit_type(const struct wsi_device *wsi,
       return WSI_SWAPCHAIN_IMAGE_BLIT;
    }
 
+   WRAPPER_LOG(info, "wsi_get_ahardware_buffer_blit_type: WSI_SWAPCHAIN_NO_BLIT");
    return WSI_SWAPCHAIN_NO_BLIT;
 }
 
@@ -302,6 +307,9 @@ wsi_create_ahardware_buffer_blit_context(const struct wsi_swapchain *chain,
 inline static uint32_t
 to_ahardware_buffer_format(VkFormat format) {
    switch (format) {
+   case VK_FORMAT_R8G8B8A8_SRGB:
+   case VK_FORMAT_R8G8B8A8_UNORM:
+      return AHARDWAREBUFFER_FORMAT_R8G8B8A8_UNORM;
    case VK_FORMAT_B8G8R8A8_SRGB:
    case VK_FORMAT_B8G8R8A8_UNORM:
       return AHARDWAREBUFFER_FORMAT_B8G8R8A8_UNORM;
@@ -382,4 +390,3 @@ wsi_configure_android_image(
 
    return VK_SUCCESS;
 }
-
