@@ -1042,6 +1042,48 @@ wrapper_CmdCopyBufferToImage(VkCommandBuffer commandBuffer,
    simple_mtx_unlock(&device->resource_mutex);
 }
 
+VKAPI_ATTR void VKAPI_CALL 
+wrapper_CmdBlitImage(
+    VkCommandBuffer commandBuffer,
+    VkImage srcImage, VkImageLayout srcImageLayout,
+    VkImage dstImage, VkImageLayout dstImageLayout,
+    uint32_t regionCount, const VkImageBlit* pRegions,
+    VkFilter filter)
+{
+   VK_FROM_HANDLE(wrapper_command_buffer, wcb, commandBuffer);
+   struct wrapper_device *device = wcb->device;
+   struct wrapper_image *dst_img = get_wrapper_image_from_handle(device, dstImage);
+   const VkImageBlit *regions = (const VkImageBlit *)pRegions;
+
+   if (dst_img && dst_img->is_emulated_bgra8) {
+      WRAPPER_LOG(error, "vkCmdBlitImage with is_emulated_bgra8 image");
+   }
+
+   device->dispatch_table.CmdBlitImage(
+      wcb->dispatch_handle,
+      srcImage, srcImageLayout,
+      dstImage, dstImageLayout,
+      regionCount, regions, filter);
+}
+
+VKAPI_ATTR void VKAPI_CALL
+wrapper_CmdBlitImage2(
+    VkCommandBuffer commandBuffer,
+    const VkBlitImageInfo2 *pBlitImageInfo)
+{
+   VK_FROM_HANDLE(wrapper_command_buffer, wcb, commandBuffer);
+   struct wrapper_device *device = wcb->device;
+   struct wrapper_image *dst_img = get_wrapper_image_from_handle(device, pBlitImageInfo->dstImage);
+
+   if (dst_img && dst_img->is_emulated_bgra8) {
+      WRAPPER_LOG(error, "vkCmdBlitImage2 with is_emulated_bgra8 image");
+   }
+
+   if (device->dispatch_table.CmdBlitImage2) {
+      device->dispatch_table.CmdBlitImage2(wcb->dispatch_handle, pBlitImageInfo);
+   }
+}
+
 VKAPI_ATTR void VKAPI_CALL
 wrapper_FreeCommandBuffers(VkDevice _device,
                            VkCommandPool commandPool,
