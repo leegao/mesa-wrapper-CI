@@ -108,6 +108,7 @@ struct wrapper_image {
    VkImageCreateInfo info;
 
    bool is_emulated_bgra8;
+   bool is_wsi_image;
 };
 
 struct wrapper_image *
