@@ -48,12 +48,17 @@ get_wrapper_buffer_from_handle(struct wrapper_device *device, VkBuffer buffer) {
    return wb;
 }
 
+inline struct wrapper_image *
+get_wrapper_image_from_handle_locked(struct wrapper_device *device, VkImage image) {
+   return _mesa_hash_table_u64_search(device->image_table, (uint64_t) image);
+}
+
 struct wrapper_image *
 get_wrapper_image_from_handle(struct wrapper_device *device, VkImage image) {
    struct wrapper_image *wi = NULL;
    
    simple_mtx_lock(&device->resource_mutex);
-   wi = _mesa_hash_table_u64_search(device->image_table, (uint64_t) image);
+   wi = get_wrapper_image_from_handle_locked(device, image);
    simple_mtx_unlock(&device->resource_mutex);
    
    return wi;
