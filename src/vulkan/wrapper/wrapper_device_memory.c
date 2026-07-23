@@ -608,26 +608,46 @@ wrapper_MapMemory2KHR(VkDevice _device,
 
    if (mem->ahardware_buffer) {
       const native_handle_t *handle;
+      int idx;
 
       handle = AHardwareBuffer_getNativeHandle(mem->ahardware_buffer);
-      fd = handle->data[0];
+   
+      for (idx = 0; idx < handle->numFds; idx++) {
+         off_t size = lseek(handle->data[idx], 0, SEEK_END);
+         if (size < 0) {
+            WRAPPER_LOG(error, "lseek failed on AHB fd (idx=%d, fd=%d): errno %d, trying next fd",
+                        idx, handle->data[idx], errno);
+            continue;
+         }
+         if ((size_t)size >= mem->alloc_size)
+            break;
+      }
+      if (idx >= handle->numFds) {
+         WRAPPER_LOG(error, "No usable AHB fd with size >= alloc_size %zu", mem->alloc_size);
+         result = VK_ERROR_MEMORY_MAP_FAILED;
+         goto fail;
+      }
+      fd = handle->data[idx];
    }
    else {
       fd = mem->fd;
    }
    
    if (pMemoryMapInfo->size == VK_WHOLE_SIZE) {
-      int res = lseek(fd, 0, SEEK_END);
-      if (res < 0) {
-         WRAPPER_LOG(error, "Failed lseek for file descriptor %d", fd);
-         result = VK_ERROR_MEMORY_MAP_FAILED;
-         goto fail;
+      if (mem->alloc_size > 0) {
+         mem->map_size = mem->alloc_size;
+      } else {
+         off_t res = lseek(fd, 0, SEEK_END);
+         if (res < 0) {
+            WRAPPER_LOG(error, "Failed lseek for file descriptor %d: errno %d", fd, errno);
+            result = VK_ERROR_MEMORY_MAP_FAILED;
+            goto fail;
+         }
+         mem->map_size = res;
       }
-      mem->map_size = mem->alloc_size > 0 ?
-         mem->alloc_size : res;
-   }
-   else
+   } else {
       mem->map_size = pMemoryMapInfo->size;
+   }
 
    WRAPPER_LOG(info, "Mapping memory %p, address %p size %zu\n", pMemoryMapInfo->memory, placed_info->pPlacedAddress, mem->map_size);
 
