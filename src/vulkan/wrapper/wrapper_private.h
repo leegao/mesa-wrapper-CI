@@ -112,6 +112,9 @@ struct wrapper_image {
 };
 
 struct wrapper_image *
+get_wrapper_image_from_handle_locked(struct wrapper_device *device, VkImage image);
+
+struct wrapper_image *
 get_wrapper_image_from_handle(struct wrapper_device *device, VkImage image);
 
 struct wrapper_fence {
