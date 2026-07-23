@@ -501,23 +501,23 @@ wrapper_CreateImage(VkDevice _device,
    VkImageCreateInfo create_info = *pCreateInfo;
    bool is_emulated_bgra8 = false;
    bool is_wsi_image = false;
-
-   // Wrapper specific extension for B8G8R8A8 AHB img emulation for the swapchain
-   VkBaseInStructure *prev = (VkBaseInStructure *) pCreateInfo;
-   for (const VkBaseInStructure *s = pCreateInfo->pNext; s; s = s->pNext) {
-      if (s->sType == VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EMULATED_B8G8R8A8_CREATE_INFO_EXT) {
-         is_emulated_bgra8 = true;
-         prev->pNext = s->pNext; // unlink
-         break;
-      }
-      prev = (VkBaseInStructure *) s;
-   }
+   VkBaseInStructure *prev = (VkBaseInStructure *) &create_info;
 
    // Tag swapchain images using VK_STRUCTURE_TYPE_WSI_IMAGE_CREATE_INFO_MESA
    prev = (VkBaseInStructure *) pCreateInfo;
    for (const VkBaseInStructure *s = pCreateInfo->pNext; s; s = s->pNext) {
       if (s->sType == VK_STRUCTURE_TYPE_WSI_IMAGE_CREATE_INFO_MESA) {
          is_wsi_image = true;
+         break;
+      }
+      prev = (VkBaseInStructure *) s;
+   }
+   
+   // Wrapper specific extension for B8G8R8A8 AHB img emulation for the swapchain
+   for (const VkBaseInStructure *s = create_info.pNext; s; s = s->pNext) {
+      if (s->sType == VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EMULATED_B8G8R8A8_CREATE_INFO_EXT) {
+         is_emulated_bgra8 = true;
+         prev->pNext = s->pNext; // unlink
          break;
       }
       prev = (VkBaseInStructure *) s;
