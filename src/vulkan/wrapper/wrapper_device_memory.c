@@ -201,6 +201,36 @@ wrapper_select_allowed_device_memory_type(struct wrapper_device *device,
    return UINT32_MAX;
 }
 
+static VkResult check_dedicated_allocate_info_for(struct wrapper_device *device,
+                                              const VkMemoryDedicatedAllocateInfo *memory_dedicated_info,
+                                              VkExternalMemoryHandleTypeFlags handle_types) {
+   if (!memory_dedicated_info) {
+      return VK_SUCCESS;
+   }
+
+   if (memory_dedicated_info->image != VK_NULL_HANDLE) {
+      struct wrapper_image *img = get_wrapper_image_from_handle_locked(
+         device, memory_dedicated_info->image);
+      if (!img || !(img->handle_types & handle_types)) {
+         WRAPPER_LOG(info, "Dedicated image handle type mismatch (0x%x vs required 0x%x)",
+                        img ? img->handle_types : 0, handle_types);
+         return VK_ERROR_INVALID_EXTERNAL_HANDLE;
+      }
+   }
+
+   if (memory_dedicated_info->buffer != VK_NULL_HANDLE) {
+      struct wrapper_buffer *buf = get_wrapper_buffer_from_handle_locked(
+         device, memory_dedicated_info->buffer);
+      if (!buf || !(buf->handle_types & handle_types)) {
+         WRAPPER_LOG(info, "Dedicated buffer handle type mismatch (0x%x vs required 0x%x)",
+                        buf ? buf->handle_types : 0, handle_types);
+         return VK_ERROR_INVALID_EXTERNAL_HANDLE;
+      }
+   }
+
+   return VK_SUCCESS;
+}
+
 static VkResult
 wrapper_allocate_memory_dmaheap(struct wrapper_device *device,
                                 const VkMemoryAllocateInfo* pAllocateInfo,
@@ -239,6 +269,14 @@ wrapper_allocate_memory_dmaheap(struct wrapper_device *device,
       return VK_ERROR_INVALID_EXTERNAL_HANDLE;
    }
 
+   const VkMemoryDedicatedAllocateInfo *memory_dedicated_info =
+      vk_find_struct_const(pAllocateInfo->pNext, MEMORY_DEDICATED_ALLOCATE_INFO);
+   result = check_dedicated_allocate_info_for(
+      device, memory_dedicated_info, VK_EXTERNAL_MEMORY_HANDLE_TYPE_DMA_BUF_BIT_EXT);
+   if (result != VK_SUCCESS) {
+      return result;
+   }
+
    import_fd_info = (VkImportMemoryFdInfoKHR) {
       .sType = VK_STRUCTURE_TYPE_IMPORT_MEMORY_FD_INFO_KHR,
       .pNext = pAllocateInfo->pNext,
@@ -270,6 +308,14 @@ wrapper_allocate_memory_opaque_fd(struct wrapper_device *device,
 {
    VkResult result;
    VkMemoryAllocateInfo allocate_info;
+
+   const VkMemoryDedicatedAllocateInfo *memory_dedicated_info =
+      vk_find_struct_const(pAllocateInfo->pNext, MEMORY_DEDICATED_ALLOCATE_INFO);
+   result = check_dedicated_allocate_info_for(
+      device, memory_dedicated_info, VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_FD_BIT);
+   if (result != VK_SUCCESS) {
+      return result;
+   }
 
    VkExportMemoryAllocateInfo export_memory_info = {
       .sType = VK_STRUCTURE_TYPE_EXPORT_MEMORY_ALLOCATE_INFO,
@@ -317,19 +363,22 @@ wrapper_allocate_memory_ahardware_buffer(struct wrapper_device *device,
                                          AHardwareBuffer **pAHardwareBuffer) {
    VkExportMemoryAllocateInfo export_memory_info;
    VkMemoryAllocateInfo allocate_info;
-   const VkMemoryDedicatedAllocateInfo *memory_dedicated_info = NULL;
    VkResult result;
 
-   
+   const VkMemoryDedicatedAllocateInfo *memory_dedicated_info =
+      vk_find_struct_const(pAllocateInfo->pNext, MEMORY_DEDICATED_ALLOCATE_INFO);
+   result = check_dedicated_allocate_info_for(
+      device, memory_dedicated_info, VK_EXTERNAL_MEMORY_HANDLE_TYPE_ANDROID_HARDWARE_BUFFER_BIT_ANDROID);
+   if (result != VK_SUCCESS) {
+      return result;
+   }
+
    export_memory_info = (VkExportMemoryAllocateInfo) {
       .sType = VK_STRUCTURE_TYPE_EXPORT_MEMORY_ALLOCATE_INFO,
       .pNext = pAllocateInfo->pNext,
       .handleTypes =
          VK_EXTERNAL_MEMORY_HANDLE_TYPE_ANDROID_HARDWARE_BUFFER_BIT_ANDROID,
    };
-
-   memory_dedicated_info = vk_find_struct_const(pAllocateInfo->pNext, MEMORY_DEDICATED_ALLOCATE_INFO);
-  
    allocate_info = *pAllocateInfo;
    allocate_info.pNext = &export_memory_info;
   
@@ -527,7 +576,8 @@ wrapper_AllocateMemory(VkDevice _device,
       wrapper_device_memory_destroy(mem);
 
       if (dedicated_allocate_info && dedicated_allocate_info->image != VK_NULL_HANDLE) {
-         struct wrapper_image *img = get_wrapper_image_from_handle_locked(device, dedicated_allocate_info->image); // already locked
+         struct wrapper_image *img = get_wrapper_image_from_handle_locked(
+            device, dedicated_allocate_info->image); // already locked
          if (img && img->is_wsi_image) {
             // Fixes failure to blit on ion-heap (< GKI 5.10) Mali devices at the cost of
             // not being able to mmap these.

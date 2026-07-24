@@ -37,12 +37,15 @@ const struct vk_device_extension_table wrapper_filter_extensions =
    .EXT_image_compression_control_swapchain = true,
 };
 
-static struct wrapper_buffer *
-get_wrapper_buffer_from_handle(struct wrapper_device *device, VkBuffer buffer) {
-   struct wrapper_buffer *wb = NULL;
+inline struct wrapper_buffer *
+get_wrapper_buffer_from_handle_locked(struct wrapper_device *device, VkBuffer buffer) {
+   return _mesa_hash_table_u64_search(device->buffer_table, (uint64_t) buffer);
+}
 
+struct wrapper_buffer *
+get_wrapper_buffer_from_handle(struct wrapper_device *device, VkBuffer buffer) {
    simple_mtx_lock(&device->resource_mutex);
-   wb = _mesa_hash_table_u64_search(device->buffer_table, (uint64_t) buffer);
+   struct wrapper_buffer *wb = get_wrapper_buffer_from_handle_locked(device, buffer);
    simple_mtx_unlock(&device->resource_mutex);
 
    return wb;
@@ -54,11 +57,9 @@ get_wrapper_image_from_handle_locked(struct wrapper_device *device, VkImage imag
 }
 
 struct wrapper_image *
-get_wrapper_image_from_handle(struct wrapper_device *device, VkImage image) {
-   struct wrapper_image *wi = NULL;
-   
+get_wrapper_image_from_handle(struct wrapper_device *device, VkImage image) {   
    simple_mtx_lock(&device->resource_mutex);
-   wi = get_wrapper_image_from_handle_locked(device, image);
+   struct wrapper_image *wi = get_wrapper_image_from_handle_locked(device, image);
    simple_mtx_unlock(&device->resource_mutex);
    
    return wi;
@@ -401,6 +402,13 @@ wrapper_CreateBuffer(VkDevice _device,
 {
    VK_FROM_HANDLE(wrapper_device, device, _device);
    VkResult res;
+   VkExternalMemoryHandleTypeFlags handle_types = 0;
+
+   const VkExternalMemoryBufferCreateInfo *ext_info =
+      vk_find_struct_const(pCreateInfo->pNext, EXTERNAL_MEMORY_BUFFER_CREATE_INFO);
+   if (ext_info) {
+      handle_types = ext_info->handleTypes;
+   }
 
    res = device->dispatch_table.CreateBuffer(device->dispatch_handle,
       pCreateInfo, pAllocator, pBuffer);
@@ -420,16 +428,17 @@ wrapper_CreateBuffer(VkDevice _device,
       simple_mtx_unlock(&device->resource_mutex);
       return VK_ERROR_OUT_OF_HOST_MEMORY;
    }
-      
+
    wb->device = device;
    wb->size = pCreateInfo->size;
    wb->dispatch_handle = *pBuffer;
+   wb->handle_types = handle_types;
 
    list_add(&wb->link, &device->buffer_list);
    _mesa_hash_table_u64_insert(device->buffer_table, (uint64_t)wb->dispatch_handle, wb);
 
    simple_mtx_unlock(&device->resource_mutex);
-   
+
    return VK_SUCCESS;
 }
 
@@ -497,28 +506,19 @@ wrapper_image_destroy(struct wrapper_device *device,
 
 VKAPI_ATTR VkResult VKAPI_CALL
 wrapper_CreateImage(VkDevice _device,
-					const VkImageCreateInfo *pCreateInfo,
-					const VkAllocationCallbacks *pAllocator,
-					VkImage *pImage)
+			 const VkImageCreateInfo *pCreateInfo,
+			 const VkAllocationCallbacks *pAllocator,
+			 VkImage *pImage)
 {
    VK_FROM_HANDLE(wrapper_device, device, _device);
    VkResult res;
    VkImageCreateInfo create_info = *pCreateInfo;
    bool is_emulated_bgra8 = false;
    bool is_wsi_image = false;
-   VkBaseInStructure *prev = (VkBaseInStructure *) &create_info;
+   VkExternalMemoryHandleTypeFlags handle_types = 0;
 
-   // Tag swapchain images using VK_STRUCTURE_TYPE_WSI_IMAGE_CREATE_INFO_MESA
-   prev = (VkBaseInStructure *) pCreateInfo;
-   for (const VkBaseInStructure *s = pCreateInfo->pNext; s; s = s->pNext) {
-      if (s->sType == VK_STRUCTURE_TYPE_WSI_IMAGE_CREATE_INFO_MESA) {
-         is_wsi_image = true;
-         break;
-      }
-      prev = (VkBaseInStructure *) s;
-   }
-   
    // Wrapper specific extension for B8G8R8A8 AHB img emulation for the swapchain
+   VkBaseInStructure *prev = (VkBaseInStructure *) &create_info;
    for (const VkBaseInStructure *s = create_info.pNext; s; s = s->pNext) {
       if (s->sType == VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EMULATED_B8G8R8A8_CREATE_INFO_EXT) {
          is_emulated_bgra8 = true;
@@ -526,6 +526,19 @@ wrapper_CreateImage(VkDevice _device,
          break;
       }
       prev = (VkBaseInStructure *) s;
+   }
+
+   // Tag swapchain images using VK_STRUCTURE_TYPE_WSI_IMAGE_CREATE_INFO_MESA
+   const struct wsi_image_create_info *wsi_info =
+      vk_find_struct_const(pCreateInfo->pNext, WSI_IMAGE_CREATE_INFO_MESA);
+   if (wsi_info) {
+      is_wsi_image = true;
+   }
+
+   const VkExternalMemoryImageCreateInfo *ext_info =
+      vk_find_struct_const(pCreateInfo->pNext, EXTERNAL_MEMORY_IMAGE_CREATE_INFO);
+   if (ext_info) {
+      handle_types = ext_info->handleTypes;
    }
 
    if (is_emulated_bcn(device->physical, pCreateInfo->format)) {
@@ -536,7 +549,7 @@ wrapper_CreateImage(VkDevice _device,
 
    res = device->dispatch_table.CreateImage(device->dispatch_handle,
       &create_info, pAllocator, pImage);
-   
+
    if (res != VK_SUCCESS) {
       WRAPPER_LOG(error, "Failed to create image, res %d", res);
       return res;
@@ -558,6 +571,7 @@ wrapper_CreateImage(VkDevice _device,
    wi->dispatch_handle = *pImage;
    wi->is_emulated_bgra8 = is_emulated_bgra8;
    wi->is_wsi_image = is_wsi_image;
+   wi->handle_types = handle_types;
 
    list_add(&wi->link, &device->image_list);
    _mesa_hash_table_u64_insert(device->image_table, (uint64_t)wi->dispatch_handle, wi);
