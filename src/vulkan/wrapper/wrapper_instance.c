@@ -8,6 +8,7 @@
 #include "vk_common_entrypoints.h"
 #include "vk_dispatch_table.h"
 #include "vk_extensions.h"
+#include "MaliHooks.hpp"
 
 const struct vk_instance_extension_table wrapper_instance_extensions = {
    .KHR_get_surface_capabilities2 = true,
@@ -151,6 +152,12 @@ static bool vulkan_library_init()
    else {
       fprintf(stderr, "%s", dlerror());
    }
+
+   if (enumerate_instance_extension_properties) {
+      uint32_t property_count = 0;
+      enumerate_instance_extension_properties(NULL, &property_count, NULL);
+   }
+   hook_libGLES_mali();
 
    return vulkan_library_handle ? true : false;
 }

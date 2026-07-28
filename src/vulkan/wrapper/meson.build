@@ -82,6 +82,8 @@ wrapper_files = files(
   'wrapper_bcdec.c',
   'wrapper_log.c',
   'wrapper_physical_device.c',
+  'And64InlineHook.cpp',
+  'MaliHooks.cpp',
 )
 
 wrapper_deps = [

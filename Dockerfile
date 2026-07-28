@@ -3,14 +3,14 @@ FROM ghcr.io/termux/package-builder:latest
 USER root
 
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends ninja-build && \
+    apt-get install -y --no-install-recommends ninja-build cmake make && \
     pip3 install --break-system-packages --ignore-installed --no-cache-dir meson ninja mako pyyaml packaging
 
 RUN mkdir -p /tmp/sysroot && \
     cd /tmp/sysroot && \
     TERMUX_REPO="https://packages-cf.termux.dev/apt/termux-main" && \
     curl -s "${TERMUX_REPO}/dists/stable/main/binary-aarch64/Packages" > Packages && \
-    PACKAGES="libdrm libandroid-shmem libxcb libx11 libxshmfence libxext libxrandr libxrender xorgproto libxau libxdmcp" && \
+    PACKAGES="libdrm libandroid-shmem libxcb libx11 libxshmfence libxext libxrandr libxrender xorgproto libxau libxdmcp libelf libelf-static liblzma liblzma-static zstd zlib" && \
     for pkg in $PACKAGES; do \
         pkg_path=$(awk -v p="Package: $pkg" '$0==p{flag=1} flag && /^Filename:/{print $2; exit}' Packages) && \
         curl -L -O "${TERMUX_REPO}/${pkg_path}"; \
@@ -39,8 +39,8 @@ pkg_config_libdir = termux_dir + '/lib/pkgconfig:' + termux_dir + '/share/pkgcon
 [built-in options]
 c_args = ['-D__TERMUX__', '-D__USE_GNU', '-U__ANDROID__', '-I' + termux_dir + '/include', '-include', 'fcntl.h', '-include', 'unistd.h']
 cpp_args = ['-D__TERMUX__', '-D__USE_GNU', '-U__ANDROID__', '-I' + termux_dir + '/include', '-include', 'fcntl.h', '-include', 'unistd.h']
-c_link_args = ['-L' + termux_dir + '/lib', '-landroid-shmem']
-cpp_link_args = ['-L' + termux_dir + '/lib', '-landroid-shmem']
+c_link_args = ['-L' + termux_dir + '/lib', '-landroid-shmem', termux_dir + '/lib/libelf.a', termux_dir + '/lib/liblzma.a', '-lzstd', '-lz']
+cpp_link_args = ['-L' + termux_dir + '/lib', '-landroid-shmem', termux_dir + '/lib/libelf.a', termux_dir + '/lib/liblzma.a', '-lzstd', '-lz']
 
 [host_machine]
 system = 'android'
