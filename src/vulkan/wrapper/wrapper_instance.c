@@ -95,11 +95,12 @@ static void init_debug_messenger(VkInstance instance)
   
 }
 
+extern
+void* load_panfork_vulkan(const char* hook_lib_dir, const char* custom_driver_dir, const char* custom_driver_name);
+
 static void *get_vulkan_handle() 
 {
    char *path = getenv("ADRENOTOOLS_DRIVER_PATH");
-   // Hardcoded for Ludashi variant only
-   path = "/data/user/0/com.ludashi.benchmark/files/imagefs/usr/lib/libvulkan_panfrost.so";
    char *redirect_dir = getenv("ADRENOTOOLS_REDIRECT_DIR");
    char *name = getenv("ADRENOTOOLS_DRIVER_NAME");
    char *hooks = getenv("ADRENOTOOLS_HOOKS_PATH");
@@ -116,25 +117,22 @@ static void *get_vulkan_handle()
       has_intercepted_layer_paths = set_layer_paths();
    }
 
+   // TODO(leegao): get this from winlator perhaps?
+   name = "libvulkan_panfrost.so";
+   path = "/data/user/0/com.ludashi.benchmark/files/imagefs/usr/lib";
+   hooks = path;
+
    if (hooks && path && (stat(path, &sb) == 0)) {
       char *temp;
       asprintf(&temp, "%s%s", path, "temp");
       mkdir(temp, S_IRWXU | S_IRWXG);
 
-      int flags = ADRENOTOOLS_DRIVER_CUSTOM;
-      if (redirect_dir)
-         flags |= ADRENOTOOLS_DRIVER_FILE_REDIRECT;
+      // int flags = ADRENOTOOLS_DRIVER_CUSTOM;
+      // if (redirect_dir)
+      //    flags |= ADRENOTOOLS_DRIVER_FILE_REDIRECT;
 
-      WRAPPER_LOG(info, "Loading vulkan library from %s", path);
-      void* handle = dlopen(path, RTLD_NOW | RTLD_LOCAL);
-      if (!handle) {
-          fprintf(stderr, "dlopen failed: %s\n", dlerror());
-      } else {
-          fprintf(stderr, "dlopen succeeded: %p\n", handle);
-      }
-
-      return handle;
-      // return  adrenotools_open_libvulkan(RTLD_NOW, flags, temp, hooks, path, name, redirect_dir, NULL);
+      WRAPPER_LOG(info, "Loading vulkan library from %s/%s at hook=%s", path, name, hooks);
+      return adrenotools_open_libvulkan(RTLD_NOW, ADRENOTOOLS_DRIVER_CUSTOM, temp, hooks, path, name, NULL, NULL);
    }
    else
       return dlopen(DEFAULT_VULKAN_PATH, RTLD_NOW | RTLD_LOCAL);
