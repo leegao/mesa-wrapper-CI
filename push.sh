@@ -15,3 +15,7 @@ sudo docker run --rm -v "$(pwd):/workspace" wrapper-compiler
 cd build/src/vulkan/wrapper/
 push libvulkan_wrapper.so
 cd -
+
+cd build/subprojects/libadrenotools/src/hook/
+push libhook_impl.so
+cd -

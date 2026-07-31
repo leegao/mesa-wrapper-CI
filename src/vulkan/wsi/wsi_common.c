@@ -467,16 +467,19 @@ wsi_swapchain_init(const struct wsi_device *wsi,
                    const struct wsi_base_image_params *image_params,
                    const VkAllocationCallbacks *pAllocator)
 {
+   WRAPPER_LOG(info, "%s @ %d", __func__, __LINE__);
    VK_FROM_HANDLE(vk_device, device, _device);
    VkResult result;
 
    memset(chain, 0, sizeof(*chain));
 
+   WRAPPER_LOG(info, "%s @ %d", __func__, __LINE__);
    vk_object_base_init(device, &chain->base, VK_OBJECT_TYPE_SWAPCHAIN_KHR);
 
    chain->wsi = wsi;
    chain->device = _device;
    chain->alloc = *pAllocator;
+   WRAPPER_LOG(info, "%s @ %d", __func__, __LINE__);
    chain->blit.type = get_blit_type(wsi, image_params, _device);
 
    chain->blit.queue = VK_NULL_HANDLE;
@@ -485,6 +488,7 @@ wsi_swapchain_init(const struct wsi_device *wsi,
 
    int cmd_pools_count = chain->blit.queue != VK_NULL_HANDLE ? 1 : wsi->queue_family_count;
 
+   WRAPPER_LOG(info, "%s @ %d", __func__, __LINE__);
    chain->cmd_pools =
       vk_zalloc(pAllocator, sizeof(VkCommandPool) * cmd_pools_count, 8,
                 VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
@@ -505,6 +509,7 @@ wsi_swapchain_init(const struct wsi_device *wsi,
             continue;
       }
 
+      WRAPPER_LOG(info, "%s @ %d", __func__, __LINE__);
       const VkCommandPoolCreateInfo cmd_pool_info = {
          .sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
          .pNext = NULL,
@@ -517,14 +522,17 @@ wsi_swapchain_init(const struct wsi_device *wsi,
          goto fail;
    }
 
+   WRAPPER_LOG(info, "%s @ %d", __func__, __LINE__);
    result = configure_image(chain, pCreateInfo, image_params,
                             &chain->image_info);
    if (result != VK_SUCCESS)
       goto fail;
 
+   WRAPPER_LOG(info, "%s @ %d", __func__, __LINE__);
    return VK_SUCCESS;
 
 fail:
+   WRAPPER_LOG(info, "%s @ %d", __func__, __LINE__);
    wsi_swapchain_finish(chain);
    return result;
 }
@@ -1036,6 +1044,7 @@ wsi_CreateSwapchainKHR(VkDevice _device,
                        VkSwapchainKHR *pSwapchain)
 {
    MESA_TRACE_FUNC();
+   WRAPPER_LOG(info, "%s @ %d", __func__, __LINE__);
    VK_FROM_HANDLE(vk_device, device, _device);
    ICD_FROM_HANDLE(VkIcdSurfaceBase, surface, pCreateInfo->surface);
    struct wsi_device *wsi_device = device->physical->wsi_device;
@@ -1045,6 +1054,7 @@ wsi_CreateSwapchainKHR(VkDevice _device,
    const VkAllocationCallbacks *alloc;
    struct wsi_swapchain *swapchain;
 
+   WRAPPER_LOG(info, "%s @ %d", __func__, __LINE__);
    if (pAllocator)
      alloc = pAllocator;
    else
@@ -1064,12 +1074,16 @@ wsi_CreateSwapchainKHR(VkDevice _device,
     * bool deferred_allocation = pCreateInfo->flags & VK_SWAPCHAIN_CREATE_DEFERRED_MEMORY_ALLOCATION_BIT_EXT;
     */
 
+   WRAPPER_LOG(info, "%s @ %d", __func__, __LINE__);
    VkResult result = iface->create_swapchain(surface, _device, wsi_device,
                                              &info, alloc,
                                              &swapchain);
-   if (result != VK_SUCCESS)
+   if (result != VK_SUCCESS) {
+      WRAPPER_LOG(info, "Failed to create swapchain: %d", result);
       return result;
+   }
 
+   WRAPPER_LOG(info, "%s @ %d", __func__, __LINE__);
    swapchain->fences = vk_zalloc(alloc,
                                  sizeof (*swapchain->fences) * swapchain->image_count,
                                  sizeof (*swapchain->fences),
@@ -1079,6 +1093,7 @@ wsi_CreateSwapchainKHR(VkDevice _device,
       return VK_ERROR_OUT_OF_HOST_MEMORY;
    }
 
+   WRAPPER_LOG(info, "%s @ %d", __func__, __LINE__);
    if (wsi_device->khr_present_wait) {
       const VkSemaphoreTypeCreateInfo type_info = {
          .sType = VK_STRUCTURE_TYPE_SEMAPHORE_TYPE_CREATE_INFO,
@@ -1099,6 +1114,7 @@ wsi_CreateSwapchainKHR(VkDevice _device,
       }
    }
 
+   WRAPPER_LOG(info, "%s @ %d", __func__, __LINE__);
    if (swapchain->blit.queue != VK_NULL_HANDLE) {
       swapchain->blit.semaphores = vk_zalloc(alloc,
                                          sizeof (*swapchain->blit.semaphores) * swapchain->image_count,
@@ -1111,6 +1127,7 @@ wsi_CreateSwapchainKHR(VkDevice _device,
       }
    }
 
+   WRAPPER_LOG(info, "%s @ %d", __func__, __LINE__);
    *pSwapchain = wsi_swapchain_to_handle(swapchain);
 
    return VK_SUCCESS;

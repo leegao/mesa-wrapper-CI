@@ -63,6 +63,7 @@
 #include "wsi_common_entrypoints.h"
 #include "wsi_common_private.h"
 #include "wsi_common_queue.h"
+#include "../wrapper/wrapper_log.h"
 
 #ifdef HAVE_SYS_SHM_H
 #include <sys/ipc.h>
@@ -2525,22 +2526,26 @@ x11_surface_create_swapchain(VkIcdSurfaceBase *icd_surface,
                              const VkAllocationCallbacks* pAllocator,
                              struct wsi_swapchain **swapchain_out)
 {
+   WRAPPER_LOG(info, "%s @ %d", __func__, __LINE__);
    struct x11_swapchain *chain;
    xcb_void_cookie_t cookie;
    VkResult result;
    VkPresentModeKHR present_mode = wsi_swapchain_get_present_mode(wsi_device, pCreateInfo);
 
+   WRAPPER_LOG(info, "%s @ %d", __func__, __LINE__);
    assert(pCreateInfo->sType == VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR);
 
    /* Get xcb connection from the icd_surface and from that our internal struct
     * representing it.
     */
    xcb_connection_t *conn = x11_surface_get_connection(icd_surface);
+   WRAPPER_LOG(info, "%s @ %d", __func__, __LINE__);
    struct wsi_x11_connection *wsi_conn =
       wsi_x11_get_connection(wsi_device, conn);
    if (!wsi_conn)
       return VK_ERROR_OUT_OF_HOST_MEMORY;
 
+   WRAPPER_LOG(info, "%s @ %d", __func__, __LINE__);
    /* Get number of images in our swapchain. This count depends on:
     * - requested minimal image count
     * - device characteristics
@@ -2556,9 +2561,11 @@ x11_surface_create_swapchain(VkIcdSurfaceBase *icd_surface,
       }
    }
 
+   WRAPPER_LOG(info, "%s @ %d", __func__, __LINE__);
    /* Check that we have a window up-front. It is an error to not have one. */
    xcb_window_t window = x11_surface_get_window(icd_surface);
 
+   WRAPPER_LOG(info, "%s @ %d", __func__, __LINE__);
    /* Get the geometry of that window. The bit depth of the swapchain will be fitted and the
     * chain's images extents should fit it for performance-optimizing flips.
     */
@@ -2571,6 +2578,7 @@ x11_surface_create_swapchain(VkIcdSurfaceBase *icd_surface,
    const uint16_t cur_height = geometry->height;
    free(geometry);
 
+   WRAPPER_LOG(info, "%s @ %d", __func__, __LINE__);
    /* Allocate the actual swapchain. The size depends on image count. */
    size_t size = sizeof(*chain) + num_images * sizeof(chain->images[0]);
    chain = vk_zalloc(pAllocator, size, 8,
@@ -2584,6 +2592,7 @@ x11_surface_create_swapchain(VkIcdSurfaceBase *icd_surface,
       return VK_ERROR_OUT_OF_HOST_MEMORY;
    }
 
+   WRAPPER_LOG(info, "%s @ %d", __func__, __LINE__);
    ret = mtx_init(&chain->thread_state_lock, mtx_plain);
    if (ret != thrd_success) {
       mtx_destroy(&chain->present_progress_mutex);
@@ -2591,6 +2600,7 @@ x11_surface_create_swapchain(VkIcdSurfaceBase *icd_surface,
       return VK_ERROR_OUT_OF_HOST_MEMORY;
    }
 
+   WRAPPER_LOG(info, "%s @ %d", __func__, __LINE__);
    ret = u_cnd_monotonic_init(&chain->thread_state_cond);
    if (ret != thrd_success) {
       mtx_destroy(&chain->present_progress_mutex);
@@ -2599,6 +2609,7 @@ x11_surface_create_swapchain(VkIcdSurfaceBase *icd_surface,
       return VK_ERROR_OUT_OF_HOST_MEMORY;
    }
 
+   WRAPPER_LOG(info, "%s @ %d", __func__, __LINE__);
    ret = u_cnd_monotonic_init(&chain->present_progress_cond);
    if (ret != thrd_success) {
       mtx_destroy(&chain->present_progress_mutex);
@@ -2608,6 +2619,7 @@ x11_surface_create_swapchain(VkIcdSurfaceBase *icd_surface,
       return VK_ERROR_OUT_OF_HOST_MEMORY;
    }
 
+   WRAPPER_LOG(info, "%s @ %d", __func__, __LINE__);
    uint32_t present_caps = 0;
 #ifdef HAVE_X11_DRM
    xcb_present_query_capabilities_cookie_t present_query_cookie;
@@ -2620,6 +2632,7 @@ x11_surface_create_swapchain(VkIcdSurfaceBase *icd_surface,
    }
 #endif
 
+WRAPPER_LOG(info, "%s @ %d", __func__, __LINE__);
 #ifdef HAVE_X11_DRM
    struct wsi_drm_image_params drm_image_params;
    uint32_t num_modifiers[2] = {0, 0};
@@ -2670,6 +2683,8 @@ x11_surface_create_swapchain(VkIcdSurfaceBase *icd_surface,
 #endif
    }
 #endif
+
+   WRAPPER_LOG(info, "%s @ %d", __func__, __LINE__);
    result = wsi_swapchain_init(wsi_device, &chain->base, device, pCreateInfo,
                                image_params, pAllocator);
 
@@ -2679,6 +2694,7 @@ x11_surface_create_swapchain(VkIcdSurfaceBase *icd_surface,
    if (result != VK_SUCCESS)
       goto fail_alloc;
 
+   WRAPPER_LOG(info, "%s @ %d", __func__, __LINE__);
    chain->base.destroy = x11_swapchain_destroy;
    chain->base.get_wsi_image = x11_get_wsi_image;
    chain->base.acquire_next_image = x11_acquire_next_image;
@@ -2742,6 +2758,7 @@ x11_surface_create_swapchain(VkIcdSurfaceBase *icd_surface,
       event_mask |= XCB_PRESENT_EVENT_MASK_IDLE_NOTIFY;
    xcb_present_select_input(chain->conn, chain->event_id, chain->window, event_mask);
 
+   WRAPPER_LOG(info, "%s @ %d", __func__, __LINE__);
    /* Create an XCB event queue to hold present events outside of the usual
     * application event queue
     */
@@ -2757,6 +2774,7 @@ x11_surface_create_swapchain(VkIcdSurfaceBase *icd_surface,
       goto fail_register;
    }
 
+   WRAPPER_LOG(info, "%s @ %d", __func__, __LINE__);
    cookie = xcb_create_gc(chain->conn,
                           chain->gc,
                           chain->window,
@@ -2772,6 +2790,7 @@ x11_surface_create_swapchain(VkIcdSurfaceBase *icd_surface,
          goto fail_init_images;
    }
 
+   WRAPPER_LOG(info, "%s @ %d", __func__, __LINE__);
    /* The queues have a length of base.image_count + 1 because we will
     * occasionally use UINT32_MAX to signal the other thread that an error
     * has occurred and we don't want an overflow.
@@ -2793,6 +2812,7 @@ x11_surface_create_swapchain(VkIcdSurfaceBase *icd_surface,
          wsi_queue_push(&chain->acquire_queue, i);
    }
 
+   WRAPPER_LOG(info, "%s @ %d", __func__, __LINE__);
    ret = thrd_create(&chain->queue_manager,
                      x11_manage_present_queue, chain);
    if (ret != thrd_success)
@@ -2807,6 +2827,7 @@ x11_surface_create_swapchain(VkIcdSurfaceBase *icd_surface,
    x11_set_string_property(conn, window, "_MESA_DRV_ENGINE_NAME", wsi_device->engine_name);
    x11_set_string_property(conn, window, "_MESA_DRV_GPU_NAME", wsi_device->properties2.properties.deviceName);
 
+   WRAPPER_LOG(info, "%s @ %d", __func__, __LINE__);
    *swapchain_out = &chain->base;
 
    return VK_SUCCESS;

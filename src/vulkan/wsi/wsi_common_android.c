@@ -11,9 +11,11 @@ static enum wsi_swapchain_blit_type
 wsi_get_ahardware_buffer_blit_type(const struct wsi_device *wsi,
                             VkDevice device)
 {
+   WRAPPER_LOG(info, "%s @ %d", __func__, __LINE__);
    AHardwareBuffer *ahardware_buffer;
    VkResult result;
    
+   WRAPPER_LOG(info, "%s @ %d", __func__, __LINE__);
    if (AHardwareBuffer_allocate(&(AHardwareBuffer_Desc){
       .width = 500,
       .height = 500,
@@ -28,6 +30,7 @@ wsi_get_ahardware_buffer_blit_type(const struct wsi_device *wsi,
       return WSI_SWAPCHAIN_IMAGE_BLIT;
    }
 
+   WRAPPER_LOG(info, "%s @ %d", __func__, __LINE__);
    VkAndroidHardwareBufferFormatPropertiesANDROID ahardware_buffer_format_props = {
       .sType = VK_STRUCTURE_TYPE_ANDROID_HARDWARE_BUFFER_FORMAT_PROPERTIES_ANDROID,
       .pNext = NULL,
@@ -39,6 +42,7 @@ wsi_get_ahardware_buffer_blit_type(const struct wsi_device *wsi,
    result = wsi->GetAndroidHardwareBufferPropertiesANDROID(
       device, ahardware_buffer, &ahardware_buffer_props);
 
+   WRAPPER_LOG(info, "%s @ %d", __func__, __LINE__);
    AHardwareBuffer_release(ahardware_buffer);
 
    if (result != VK_SUCCESS) {
@@ -46,6 +50,7 @@ wsi_get_ahardware_buffer_blit_type(const struct wsi_device *wsi,
       return WSI_SWAPCHAIN_IMAGE_BLIT;
    }
 
+   WRAPPER_LOG(info, "%s @ %d", __func__, __LINE__);
    VkPhysicalDeviceExternalImageFormatInfo external_format_info = {
       .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTERNAL_IMAGE_FORMAT_INFO,
       .pNext = NULL,
@@ -77,6 +82,7 @@ wsi_get_ahardware_buffer_blit_type(const struct wsi_device *wsi,
       return WSI_SWAPCHAIN_IMAGE_BLIT;
    }
 
+   WRAPPER_LOG(info, "%s @ %d", __func__, __LINE__);
    if (!(external_format_props.externalMemoryProperties.externalMemoryFeatures
          & VK_EXTERNAL_MEMORY_FEATURE_IMPORTABLE_BIT)) {
       WRAPPER_LOG(error, "External image format isn't importable, blitting");
@@ -382,4 +388,3 @@ wsi_configure_android_image(
 
    return VK_SUCCESS;
 }
-

@@ -119,7 +119,7 @@ static void *get_vulkan_handle()
 
    // TODO(leegao): get this from winlator perhaps?
    name = "libvulkan_panfrost.so";
-   path = "/data/user/0/com.ludashi.benchmark/files/imagefs/usr/lib";
+   path = "/data/user/0/com.ludashi.benchmark/files/imagefs/usr/lib/";
    hooks = path;
 
    if (hooks && path && (stat(path, &sb) == 0)) {
@@ -144,7 +144,8 @@ static bool vulkan_library_init()
    if (vulkan_library_handle)
       return true;
 
-   vulkan_library_handle = get_vulkan_handle();   
+   vulkan_library_handle = get_vulkan_handle();
+   WRAPPER_LOG(info, "%s @ %d: vulkan_library_handle=%p", __func__, __LINE__, vulkan_library_handle);
 
    if (vulkan_library_handle) {
       create_instance = dlsym(vulkan_library_handle, "vkCreateInstance");

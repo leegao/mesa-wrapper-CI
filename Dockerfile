@@ -57,6 +57,7 @@ BUILD_DIR="${1:-${BUILD_DIR:-build}}"
 
 if [ ! -d "${BUILD_DIR}" ]; then
   meson setup "${BUILD_DIR}" --cross-file /root/build-config/cross_file.txt \
+      --force-fallback-for=libadrenotools \
       -Dcpp_rtti=false \
       -Dgbm=disabled \
       -Dopengl=false \

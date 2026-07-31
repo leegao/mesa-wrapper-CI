@@ -73,6 +73,11 @@ adrenotools_dep = declare_dependency(
   link_with: adrenotools_subproj.get_variable('adrenotools_lib'),
 )
 
+adrenotools_hook_impl_dep = declare_dependency(
+  include_directories: adrenotools_subproj.get_variable('adrenotools_inc'),
+  link_with: adrenotools_subproj.get_variable('hook_impl_lib'),
+)
+
 wrapper_files = files(
   'wrapper_device.c',
   'wrapper_device_memory.c',
@@ -89,6 +94,7 @@ wrapper_deps = [
   idep_vulkan_util,
   idep_vulkan_wsi,
   adrenotools_dep,
+  adrenotools_hook_impl_dep,
   dep_android,
 ]
 
