@@ -120,7 +120,7 @@ wsi_device_init(struct wsi_device *wsi,
    };
    GetPhysicalDeviceProperties2(pdevice, &wsi->properties2);
    
-   if (pddp.driverID == VK_DRIVER_ID_ARM_PROPRIETARY)
+   if (pddp.driverID == VK_DRIVER_ID_ARM_PROPRIETARY || pddp.driverID == VK_DRIVER_ID_MESA_PANVK)
       wsi->needs_blit = true;
 
    wsi->maxImageDimension2D = wsi->properties2.properties.limits.maxImageDimension2D;
